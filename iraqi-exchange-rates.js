@@ -132,6 +132,29 @@ function simulateBureauRates(bureauId) {
 // ==================== DISPLAY RATES ====================
 
 function showIraqiBureausRates() {
+    // Clean up old bureau data from localStorage
+    const savedBureaus = JSON.parse(localStorage.getItem('selectedBureaus') || '[]');
+    const invalidBureaus = savedBureaus.filter(id => !IRAQI_BUREAUS[id]);
+    
+    // If there are invalid bureaus, clean up
+    if (invalidBureaus.length > 0 || savedBureaus.length === 0) {
+        selectedBureaus = ['hetwan']; // Reset to only hetwan
+        localStorage.setItem('selectedBureaus', JSON.stringify(selectedBureaus));
+    }
+    
+    // Clean up old rates data for removed bureaus
+    const savedRates = JSON.parse(localStorage.getItem('iraqiRates') || '{}');
+    const cleanedRates = {};
+    for (const id of selectedBureaus) {
+        if (savedRates[id]) {
+            cleanedRates[id] = savedRates[id];
+        }
+    }
+    iraqiRates = cleanedRates;
+    if (Object.keys(cleanedRates).length > 0) {
+        localStorage.setItem('iraqiRates', JSON.stringify(iraqiRates));
+    }
+    
     // Load existing rates from localStorage if available
     if (Object.keys(iraqiRates).length === 0) {
         const savedRates = localStorage.getItem('iraqiRates');
