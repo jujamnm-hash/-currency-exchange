@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>سیستەمی تۆماری گۆڕینەوەی دراو</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="ultimate-styles.css">
+    <link rel="stylesheet" href="advanced-pro-styles.css">
+    <link rel="stylesheet" href="enterprise-styles.css">
+    <link rel="stylesheet" href="iraqi-exchange-styles.css">
+    <link rel="stylesheet" href="mobile-responsive.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="description" content="سیستەمی تۆماری گۆڕینەوەی دراو و حسابکردنی قازانج و زەرەر">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Shared Utilities - Load First -->
+    <script src="shared-utilities.js"></script>
+</head>
+<body class="light-mode">
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>💱 سیستەمی گۆڕینەوەی دراو</h1>
+                <div class="header-actions">
+                    <button onclick="showIraqiBureausRates()" class="btn-icon" title="بۆرسەکانی عێراق">🇮🇶</button>
+                    <button onclick="showQuickActions()" class="btn-icon" title="کردارە خێراکان">⚡</button>
+                    <button onclick="safeCall(showAnalytics)" class="btn-icon" title="شیکاری">📊</button>
+                    <button onclick="safeCall(showNotificationSettings)" class="btn-icon" title="ئاگادارکردنەوەکان">🔔</button>
+                    <button onclick="toggleTheme()" class="btn-icon" title="گۆڕینی ڕەنگ">🌓</button>
+                    <button onclick="showExportImport()" class="btn-icon" title="هەناردە/هاوردە">📥</button>
+                    <button onclick="showSettings()" class="btn-icon" title="ڕێکخستنەکان">⚙️</button>
+                </div>
+            </div>
+            <div class="summary">
+                <div class="summary-item profit">
+                    <span class="label">کۆی قازانج:</span>
+                    <span class="value" id="totalProfit">0</span>
+                    <span class="currency">دۆلار</span>
+                </div>
+                <div class="summary-item loss">
+                    <span class="label">کۆی زەرەر:</span>
+                    <span class="value" id="totalLoss">0</span>
+                    <span class="currency">دۆلار</span>
+                </div>
+                <div class="summary-item balance">
+                    <span class="label">باڵانس:</span>
+                    <span class="value" id="netBalance">0</span>
+                    <span class="currency">دۆلار</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Form for adding new transaction -->
+        <section class="add-transaction">
+            <h2>گۆڕینەوەی نوێ زیاد بکە</h2>
+            <form id="transactionForm">
+                <div class="form-group">
+                    <label for="transactionType">جۆری گۆڕینەوە:</label>
+                    <select id="transactionType" required>
+                        <option value="buy">کڕین (دینار → دراو)</option>
+                        <option value="sell">فرۆشتن (دراو → دینار)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="currency">جۆری دراو:</label>
+                    <select id="currency" required>
+                        <option value="USD">💵 دۆلاری ئەمریکی (USD)</option>
+                        <option value="EUR">💶 یۆرۆ (EUR)</option>
+                        <option value="GBP">💷 پاوەندی بەریتانی (GBP)</option>
+                        <option value="TRY">💴 لیرەی تورکی (TRY)</option>
+                        <option value="AED">💵 دیرهەمی ئیماراتی (AED)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="amount">بڕی دراو:</label>
+                    <input type="number" id="amount" step="0.01" required placeholder="بڕی دراو بنووسە">
+                </div>
+
+                <div class="form-group">
+                    <label for="target">ئامانجی نرخ (دڵخواز):</label>
+                    <input type="number" id="target" step="0.01" placeholder="نرخێک بنووسە کە دەتەوێت پێی بگات">
+                </div>
+
+                <div class="form-group">
+                    <label for="rate">نرخی گۆڕینەوە (دینار بۆ 1 دۆلار):</label>
+                    <input type="number" id="rate" step="0.01" required placeholder="نرخی گۆڕینەوە بنووسە">
+                </div>
+
+                <div class="form-group">
+                    <label for="date">بەروار:</label>
+                    <input type="date" id="date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">تێبینی (دڵخواز):</label>
+                    <input type="text" id="notes" placeholder="تێبینییەک زیاد بکە">
+                </div>
+
+                <button type="submit" class="btn btn-primary">زیادکردن</button>
+            </form>
+        </section>
+
+        <!-- Current Rate Calculator -->
+        <section class="rate-calculator">
+            <h2>حساباتی نرخی ئێستا</h2>
+            <div class="calculator-input">
+                <label for="currentRate">نرخی ئێستای دۆلار:</label>
+                <input type="number" id="currentRate" step="0.01" placeholder="نرخی ئێستا بنووسە">
+                <button onclick="calculateCurrentPosition()" class="btn btn-secondary">حساب بکە</button>
+            </div>
+            <div id="calculationResult" class="result-box"></div>
+        </section>
+
+        <!-- Transaction History -->
+        <section class="transaction-history">
+            <div class="history-header">
+                <h2>مێژووی گۆڕینەوەکان</h2>
+                <button onclick="clearAllData()" class="btn btn-danger btn-small">سڕینەوەی هەمووی</button>
+            </div>
+            <div id="transactionList" class="transaction-list"></div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section">
+            <h2>هێڵکاری و شیکاری</h2>
+            <div class="chart-tabs">
+                <button class="chart-tab active" onclick="switchChart('profit')">قازانج/زەرەر</button>
+                <button class="chart-tab" onclick="switchChart('balance')">باڵانسی دراوەکان</button>
+                <button class="chart-tab" onclick="switchChart('rates')">نرخەکان</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Price Alerts -->
+        <section class="alerts-section">
+            <h2>ئاگادارییە ئامانجەکان</h2>
+            <div id="priceAlerts" class="alerts-list"></div>
+        </section>
+
+        <!-- Statistics -->
+        <section class="statistics">
+            <h2>ئامارەکان</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">کۆی گۆڕینەوەکان:</span>
+                    <span class="stat-value" id="totalTransactions">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">کۆی دراوی کڕاو:</span>
+                    <span class="stat-value" id="totalBought">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">کۆی دراوی فرۆشراو:</span>
+                    <span class="stat-value" id="totalSold">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">دراوی ماوە:</span>
+                    <span class="stat-value" id="remainingDollars">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">تێچووی نێوەند (کڕین):</span>
+                    <span class="stat-value" id="avgBuyRate">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">نرخی نێوەند (فرۆشتن):</span>
+                    <span class="stat-value" id="avgSellRate">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">باشترین گۆڕینەوە:</span>
+                    <span class="stat-value" id="bestTrade">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">خراپترین گۆڕینەوە:</span>
+                    <span class="stat-value" id="worstTrade">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">ڕێژەی سەرکەوتن:</span>
+                    <span class="stat-value" id="successRate">0%</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal for Export/Import -->
+    <div id="exportImportModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('exportImportModal')">&times;</span>
+            <h2>هەناردە/هاوردەی زانیاری</h2>
+            <div class="modal-body">
+                <div class="export-section">
+                    <h3>هەناردەی زانیاری</h3>
+                    <button onclick="exportData('json')" class="btn btn-secondary">📥 هەناردە وەک JSON</button>
+                    <button onclick="exportData('csv')" class="btn btn-secondary">📊 هەناردە وەک CSV</button>
+                    <button onclick="exportData('pdf')" class="btn btn-secondary">📄 هەناردە وەک PDF</button>
+                </div>
+                <div class="import-section">
+                    <h3>هاوردەی زانیاری</h3>
+                    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+                    <button onclick="document.getElementById('importFile').click()" class="btn btn-primary">📤 هاوردەی فایلی JSON</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Settings -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('settingsModal')">&times;</span>
+            <h2>ڕێکخستنەکان</h2>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label for="defaultCurrency">دراوی بنەڕەت:</label>
+                    <select id="defaultCurrency" onchange="saveSettings()">
+                        <option value="USD">دۆلاری ئەمریکی (USD)</option>
+                        <option value="EUR">یۆرۆ (EUR)</option>
+                        <option value="GBP">پاوەندی بەریتانی (GBP)</option>
+                        <option value="TRY">لیرەی تورکی (TRY)</option>
+                        <option value="AED">دیرهەمی ئیماراتی (AED)</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="enableAlerts" onchange="saveSettings()">
+                        چالاککردنی ئاگادارییەکان
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="autoBackup" onchange="saveSettings()">
+                        پاشەکەوتی ئۆتۆماتیک
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="advanced-features.js" onerror="console.warn('Advanced features not loaded')"></script>
+    <script src="premium-features.js" onerror="console.warn('Premium features not loaded')"></script>
+    <script>
+        // Verify all scripts loaded
+        console.log('App initialized');
+        console.log('LocalStorage available:', typeof(Storage) !== "undefined");
+        
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(function(registration) {
+                    console.log('Service Worker registered successfully:', registration.scope);
+                })
+                .catch(function(error) {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+    </script>
+    
+    <!-- Ultimate Features -->
+    <script src="ultimate-features.js" onerror="console.error('Failed to load ultimate-features.js')"></script>
+    
+    <!-- Advanced Pro Features -->
+    <script src="advanced-pro-features.js" onerror="console.error('Failed to load advanced-pro-features.js')"></script>
+    
+    <!-- Enterprise Features -->
+    <script src="enterprise-features.js" onerror="console.error('Failed to load enterprise-features.js')"></script>
+    
+    <!-- Iraqi Exchange Rates -->
+    <script src="iraqi-exchange-rates.js" onerror="console.error('Failed to load iraqi-exchange-rates.js')"></script>
+</body>
+</html>
