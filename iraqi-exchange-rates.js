@@ -356,10 +356,11 @@ function showBureauSettings() {
                 <label for="updateInterval">ماوەی نوێکردنەوە (خولەک):</label>
                 <select id="updateInterval">
                     <option value="5">5 خولەک</option>
-                    <option value="10" selected>10 خولەک</option>
+                    <option value="10">10 خولەک</option>
                     <option value="15">15 خولەک</option>
-                    <option value="30">30 خولەک</option>
+                    <option value="30" selected>30 خولەک</option>
                     <option value="60">1 کاتژمێر</option>
+                    <option value="120">2 کاتژمێر</option>
                 </select>
             </div>
             
@@ -387,8 +388,9 @@ function showBureauSettings() {
                     <li>✅ نرخەکانی راستەقینەی بۆرسەکانی عێراق</li>
                     <li>📅 نوێکراوەتەوە: کانونی دووەمی 2026</li>
                     <li>💱 نرخەکان بە دینار عێراقی بۆ 1 یەکەی دراو</li>
-                    <li>🔄 نوێکردنەوەی خۆکار هەر 10 خولەک</li>
+                    <li>🔄 نوێکردنەوەی خۆکار هەر 30 خولەک</li>
                     <li>⭐ باشترین نرخ بە ستێرە نیشان دەکرێت</li>
+                    <li>🔔 نۆتیفیکەیشن پاش هەر نوێکردنەوەیەک</li>
                 </ul>
             </div>
             
@@ -442,7 +444,8 @@ function startBureausAutoUpdate() {
     
     if (!iraqiBureausEnabled) return;
     
-    const interval = parseInt(localStorage.getItem('bureausUpdateInterval') || '10');
+    // Changed default from 10 minutes to 30 minutes to prevent notification flooding
+    const interval = parseInt(localStorage.getItem('bureausUpdateInterval') || '30');
     
     // Initial fetch
     fetchIraqiRates();
