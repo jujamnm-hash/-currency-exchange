@@ -680,6 +680,9 @@ function showQuickActions() {
     
     modal.innerHTML = `
         <div class="quick-actions-grid">
+            <button onclick="showIraqiBureausRates()" class="quick-action-btn">
+                🇮🇶<br>بۆرسەکان
+            </button>
             <button onclick="showLanguageSelector()" class="quick-action-btn">
                 🌐<br>زمان
             </button>

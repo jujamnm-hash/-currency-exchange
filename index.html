@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="ultimate-styles.css">
     <link rel="stylesheet" href="advanced-pro-styles.css">
     <link rel="stylesheet" href="enterprise-styles.css">
+    <link rel="stylesheet" href="iraqi-exchange-styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4CAF50">
     <meta name="description" content="سیستەمی تۆماری گۆڕینەوەی دراو و حسابکردنی قازانج و زەرەر">
@@ -22,6 +23,7 @@
             <div class="header-top">
                 <h1>💱 سیستەمی گۆڕینەوەی دراو</h1>
                 <div class="header-actions">
+                    <button onclick="showIraqiBureausRates()" class="btn-icon" title="بۆرسەکانی عێراق">🇮🇶</button>
                     <button onclick="showQuickActions()" class="btn-icon" title="کردارە خێراکان">⚡</button>
                     <button onclick="safeCall(showAnalytics)" class="btn-icon" title="شیکاری">📊</button>
                     <button onclick="safeCall(showNotificationSettings)" class="btn-icon" title="ئاگادارکردنەوەکان">🔔</button>
@@ -265,5 +267,8 @@
     
     <!-- Enterprise Features -->
     <script src="enterprise-features.js" onerror="console.error('Failed to load enterprise-features.js')"></script>
+    
+    <!-- Iraqi Exchange Rates -->
+    <script src="iraqi-exchange-rates.js" onerror="console.error('Failed to load iraqi-exchange-rates.js')"></script>
 </body>
 </html>

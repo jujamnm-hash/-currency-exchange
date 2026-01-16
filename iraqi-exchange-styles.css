@@ -1,0 +1,398 @@
+/* ======================================
+   🇮🇶 IRAQI EXCHANGE BUREAUS STYLES
+   ====================================== */
+
+/* Iraqi Bureaus Container */
+.iraqi-bureaus {
+    padding: 20px;
+}
+
+.bureaus-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.bureaus-header h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    color: var(--primary);
+}
+
+.last-update {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 5px 0;
+}
+
+/* Bureau Selector */
+.bureaus-selector {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.bureau-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.bureau-checkbox:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.bureau-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.bureau-checkbox input[type="checkbox"]:checked + span {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.bureau-checkbox span {
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+/* Rates Comparison */
+.rates-comparison {
+    margin: 30px 0;
+}
+
+.rates-comparison h4 {
+    text-align: center;
+    margin: 0 0 20px 0;
+    color: var(--text);
+}
+
+.comparison-table-wrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.rates-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    font-size: 14px;
+}
+
+.rates-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.rates-table th {
+    padding: 15px 10px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.rates-table th small {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.9;
+    margin-top: 3px;
+}
+
+.rates-table td {
+    padding: 12px 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+}
+
+.rates-table tbody tr:hover {
+    background: var(--hover-bg);
+}
+
+.currency-cell {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.best-rate {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    font-weight: 700;
+    position: relative;
+}
+
+.best-rate::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    pointer-events: none;
+}
+
+/* Rates Actions */
+.rates-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 25px 0;
+    flex-wrap: wrap;
+}
+
+.rates-actions .btn {
+    min-width: 120px;
+}
+
+/* Info Note */
+.info-note {
+    padding: 15px;
+    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+    border-radius: 10px;
+    margin: 20px 0;
+    text-align: center;
+    font-size: 14px;
+    color: #2d3436;
+    border: 2px solid #fdcb6e;
+}
+
+/* Bureau Settings */
+.bureau-settings {
+    padding: 20px;
+}
+
+.bureau-settings h3 {
+    margin: 0 0 25px 0;
+    text-align: center;
+    color: var(--primary);
+}
+
+.setting-item {
+    margin: 20px 0;
+    padding: 15px;
+    background: var(--surface);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.setting-item label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.setting-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.setting-item select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--text);
+    font-size: 14px;
+}
+
+/* Bureaus List */
+.bureaus-list {
+    margin: 25px 0;
+}
+
+.bureaus-list h4 {
+    margin: 0 0 15px 0;
+    color: var(--text);
+}
+
+.bureau-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    margin: 10px 0;
+    background: var(--surface);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.bureau-name {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.bureau-name small {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.bureau-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
+.status-active {
+    color: #27ae60;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.status-inactive {
+    color: #95a5a6;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.bureau-status small {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+/* Info Box */
+.info-box {
+    padding: 20px;
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    border-radius: 12px;
+    margin: 25px 0;
+    border: 2px solid #81ecec;
+}
+
+.info-box h4 {
+    margin: 0 0 15px 0;
+    color: #2d3436;
+}
+
+.info-box ul {
+    margin: 0;
+    padding: 0 0 0 25px;
+    color: #2d3436;
+}
+
+.info-box li {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .bureaus-selector {
+        flex-direction: column;
+    }
+    
+    .bureau-checkbox {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .rates-table {
+        font-size: 12px;
+    }
+    
+    .rates-table th,
+    .rates-table td {
+        padding: 8px 5px;
+    }
+    
+    .rates-table th small {
+        font-size: 9px;
+    }
+    
+    .rates-actions {
+        flex-direction: column;
+    }
+    
+    .rates-actions .btn {
+        width: 100%;
+    }
+    
+    .bureau-info {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .bureau-status {
+        align-items: center;
+    }
+}
+
+/* Dark Mode */
+body.dark-mode .currency-cell {
+    background: linear-gradient(135deg, #c850c0 0%, #ff6b6b 100%);
+}
+
+body.dark-mode .best-rate {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+body.dark-mode .info-note {
+    background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+    border-color: #fdcb6e;
+}
+
+body.dark-mode .info-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+}
+
+body.dark-mode .info-box h4,
+body.dark-mode .info-box li {
+    color: white;
+}
+
+/* Animations */
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+    }
+}
+
+.best-rate {
+    animation: pulseGlow 2s infinite;
+}
+
+/* Loading Animation */
+.loading-rates {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+
+.loading-rates::after {
+    content: '🔄';
+    font-size: 48px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
