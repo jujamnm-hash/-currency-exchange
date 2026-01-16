@@ -248,6 +248,9 @@ function showIraqiBureausRates() {
                 <button onclick="fetchIraqiRates(false)" class="btn btn-primary">
                     🔄 نوێکردنەوە
                 </button>
+                <button onclick="showAdminRatesEditor()" class="btn btn-primary">
+                    ✏️ دەستکاری نرخەکان
+                </button>
                 <button onclick="autoFillFromBureaus()" class="btn btn-secondary">
                     ✨ پڕکردنەوەی خۆکار
                 </button>
@@ -473,6 +476,187 @@ function getTimeAgo(date) {
     if (seconds < 3600) return `پێش ${Math.floor(seconds / 60)} خولەک`;
     if (seconds < 86400) return `پێش ${Math.floor(seconds / 3600)} کاتژمێر`;
     return `پێش ${Math.floor(seconds / 86400)} ڕۆژ`;
+}
+
+// ==================== ADMIN RATES EDITOR ====================
+
+function showAdminRatesEditor() {
+    const html = `
+        <div class="admin-rates-editor">
+            <div class="admin-header">
+                <h3>✏️ دەستکاری نرخەکانی بۆرسەکان</h3>
+                <p class="admin-note">💡 نرخەکان بە دینار عێراقی بۆ 1 یەکەی دراو</p>
+            </div>
+            
+            <div class="bureaus-tabs">
+                <button class="bureau-tab active" onclick="switchBureauTab('hetwan')" data-bureau="hetwan">
+                    💱 هەتوان
+                </button>
+                <button class="bureau-tab" onclick="switchBureauTab('alqamar')" data-bureau="alqamar">
+                    🌙 القمر
+                </button>
+                <button class="bureau-tab" onclick="switchBureauTab('taknerkh')" data-bureau="taknerkh">
+                    💵 تاک نرخ
+                </button>
+            </div>
+            
+            <form id="adminRatesForm" class="admin-rates-form">
+                ${['hetwan', 'alqamar', 'taknerkh'].map(bureauId => `
+                    <div class="bureau-rates-section ${bureauId === 'hetwan' ? 'active' : ''}" data-bureau="${bureauId}">
+                        <h4>${IRAQI_BUREAUS[bureauId].icon} ${IRAQI_BUREAUS[bureauId].name}</h4>
+                        
+                        ${IRAQI_CURRENCIES.map(currency => {
+                            const currentRate = iraqiRates[bureauId]?.[currency] || 0;
+                            return `
+                                <div class="rate-input-group">
+                                    <label for="${bureauId}_${currency}">
+                                        <strong>${currency}</strong>
+                                        <span class="currency-name">${getCurrencyName(currency)}</span>
+                                    </label>
+                                    <input type="number" 
+                                           id="${bureauId}_${currency}" 
+                                           name="${bureauId}_${currency}"
+                                           value="${currentRate}" 
+                                           step="0.01" 
+                                           min="0"
+                                           placeholder="0.00"
+                                           class="rate-input">
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `).join('')}
+                
+                <div class="admin-actions">
+                    <button type="button" onclick="saveAdminRates()" class="btn btn-success">
+                        💾 پاشەکەوتکردن
+                    </button>
+                    <button type="button" onclick="resetToDefaults()" class="btn btn-warning">
+                        🔄 گەڕانەوە بۆ بنەڕەت
+                    </button>
+                    <button type="button" onclick="closeModal('adminRatesEditorModal')" class="btn btn-secondary">
+                        ❌ داخستن
+                    </button>
+                </div>
+            </form>
+            
+            <div class="admin-info">
+                <h4>ℹ️ ڕێنمایی:</h4>
+                <ul>
+                    <li>✏️ نرخەکان بە دینار عێراقی بنووسە</li>
+                    <li>💾 پاش نووسین کرتەبکە لە "پاشەکەوتکردن"</li>
+                    <li>🔄 نرخەکان یەکسەر لە سیستەمەکە نوێ دەبنەوە</li>
+                    <li>📱 گۆڕانکارییەکان بە شێوەی خۆکار پاشەکەوت دەکرێن</li>
+                    <li>⭐ نرخی کەمتر وەک "باشترین نرخ" پیشان دەدرێت</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    const modal = createModal('adminRatesEditorModal', 'دەستکاری نرخەکان');
+    modal.innerHTML = html;
+}
+
+function getCurrencyName(currency) {
+    const names = {
+        USD: 'دۆلاری ئەمریکی',
+        EUR: 'یۆرۆ',
+        GBP: 'پاوەندی ئینگلیزی',
+        TRY: 'لیرەی تورکی',
+        SAR: 'ڕیاڵی سعودی',
+        AED: 'دیرهەمی ئیماراتی',
+        IRR: 'ڕیاڵی ئێرانی'
+    };
+    return names[currency] || currency;
+}
+
+function switchBureauTab(bureauId) {
+    // Update tabs
+    document.querySelectorAll('.bureau-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.bureau === bureauId) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Update sections
+    document.querySelectorAll('.bureau-rates-section').forEach(section => {
+        section.classList.remove('active');
+        if (section.dataset.bureau === bureauId) {
+            section.classList.add('active');
+        }
+    });
+}
+
+function saveAdminRates() {
+    const form = document.getElementById('adminRatesForm');
+    if (!form) return;
+    
+    const updatedRates = {};
+    
+    // Collect rates from all bureaus
+    ['hetwan', 'alqamar', 'taknerkh'].forEach(bureauId => {
+        const bureauRates = {};
+        
+        IRAQI_CURRENCIES.forEach(currency => {
+            const input = form.querySelector(`#${bureauId}_${currency}`);
+            if (input) {
+                const value = parseFloat(input.value) || 0;
+                bureauRates[currency] = value;
+            }
+        });
+        
+        updatedRates[bureauId] = {
+            ...bureauRates,
+            timestamp: new Date().toISOString(),
+            source: IRAQI_BUREAUS[bureauId].name,
+            realRates: true,
+            adminUpdated: true,
+            lastUpdate: new Date().toLocaleString('ku-IQ', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        };
+        
+        IRAQI_BUREAUS[bureauId].lastUpdate = new Date().toISOString();
+        IRAQI_BUREAUS[bureauId].rates = bureauRates;
+    });
+    
+    // Save to global and localStorage
+    iraqiRates = updatedRates;
+    localStorage.setItem('iraqiRates', JSON.stringify(iraqiRates));
+    localStorage.setItem('lastIraqiRatesUpdate', new Date().toISOString());
+    
+    // Close modal and refresh display
+    closeModal('adminRatesEditorModal');
+    
+    // Update bureaus display if open
+    updateIraqiRatesDisplay();
+    
+    showSimpleNotification('✓ نرخەکان بە سەرکەوتوویی پاشەکەوت کران', 'success');
+}
+
+function resetToDefaults() {
+    if (!confirm('دڵنیایت لە گەڕانەوە بۆ نرخە بنەڕەتییەکان؟')) {
+        return;
+    }
+    
+    // Reset to default rates
+    ['hetwan', 'alqamar', 'taknerkh'].forEach(bureauId => {
+        simulateBureauRates(bureauId);
+    });
+    
+    // Save and refresh
+    localStorage.setItem('iraqiRates', JSON.stringify(iraqiRates));
+    localStorage.setItem('lastIraqiRatesUpdate', new Date().toISOString());
+    
+    closeModal('adminRatesEditorModal');
+    updateIraqiRatesDisplay();
+    
+    showSimpleNotification('✓ نرخەکان گەڕانەوە بۆ بنەڕەت', 'success');
 }
 
 // ==================== INITIALIZATION ====================
