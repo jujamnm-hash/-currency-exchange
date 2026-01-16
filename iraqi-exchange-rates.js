@@ -46,7 +46,7 @@ let iraqiRates = JSON.parse(localStorage.getItem('iraqiRates') || '{}');
 
 // ==================== FETCH RATES FROM BUREAUS ====================
 
-async function fetchIraqiRates() {
+async function fetchIraqiRates(silentUpdate = false) {
     if (!iraqiBureausEnabled) return;
     
     console.log('🔄 Fetching Iraqi exchange rates...');
@@ -72,7 +72,10 @@ async function fetchIraqiRates() {
     // Update display
     updateIraqiRatesDisplay();
     
-    showSimpleNotification('✓ نرخەکانی بۆرسەکانی عێراق نوێ کرانەوە', 'success');
+    // Only show notification if not silent update
+    if (!silentUpdate) {
+        showSimpleNotification('✓ نرخەکانی بۆرسەکانی عێراق نوێ کرانەوە', 'success');
+    }
 }
 
 async function fetchFromBureau(bureauId) {
@@ -182,8 +185,8 @@ function simulateBureauRates(bureauId) {
 // ==================== DISPLAY RATES ====================
 
 function showIraqiBureausRates() {
-    // Fetch latest rates first
-    fetchIraqiRates();
+    // Fetch latest rates silently (without notification)
+    fetchIraqiRates(true);
     
     const lastUpdate = localStorage.getItem('lastIraqiRatesUpdate');
     const timeAgo = lastUpdate ? getTimeAgo(new Date(lastUpdate)) : 'هەرگیز';
@@ -258,7 +261,7 @@ function showIraqiBureausRates() {
             </div>
             
             <div class="rates-actions">
-                <button onclick="fetchIraqiRates()" class="btn btn-primary">
+                <button onclick="fetchIraqiRates(false)" class="btn btn-primary">
                     🔄 نوێکردنەوە
                 </button>
                 <button onclick="autoFillFromBureaus()" class="btn btn-secondary">
