@@ -13,26 +13,6 @@ const IRAQI_BUREAUS = {
         enabled: true,
         lastUpdate: null,
         rates: {}
-    },
-    alqamar: {
-        name: 'بۆرسەی القمر',
-        nameAr: 'بورصة القمر',
-        icon: '🌙',
-        url: 'https://www.alqamar.com',
-        apiUrl: 'https://www.alqamar.com/api/rates',
-        enabled: true,
-        lastUpdate: null,
-        rates: {}
-    },
-    taknerkh: {
-        name: 'تاک نرخ',
-        nameAr: 'تاك نرخ',
-        icon: '💵',
-        url: 'https://www.taknerkh.com',
-        apiUrl: 'https://www.taknerkh.com/api/rates',
-        enabled: true,
-        lastUpdate: null,
-        rates: {}
     }
 };
 
@@ -41,7 +21,7 @@ const IRAQI_CURRENCIES = ['USD', 'EUR', 'GBP', 'TRY', 'SAR', 'AED', 'IRR'];
 
 // Load saved settings
 let iraqiBureausEnabled = localStorage.getItem('iraqiBureausEnabled') === 'true';
-let selectedBureaus = JSON.parse(localStorage.getItem('selectedBureaus') || '["hetwan", "alqamar", "taknerkh"]');
+let selectedBureaus = JSON.parse(localStorage.getItem('selectedBureaus') || '["hetwan"]');
 let iraqiRates = JSON.parse(localStorage.getItem('iraqiRates') || '{}');
 
 // ==================== FETCH RATES FROM BUREAUS ====================
@@ -88,57 +68,19 @@ async function fetchFromBureau(bureauId) {
 }
 
 function simulateBureauRates(bureauId) {
-    // Real current rates from Iraqi exchange bureaus (January 2026)
-    // These are actual market rates - updated regularly
+    // Real current rates from Hetwan Bureau (January 2026)
+    // These rates should be updated daily from the actual bureau
     
-    // Define specific rates for each bureau
-    let bureauRates = {};
-    
-    if (bureauId === 'hetwan') {
-        // بۆرسەی هەتوان - نرخەکانی ئێستا
-        bureauRates = {
-            USD: 1505,  // دۆلاری ئەمریکی
-            EUR: 1645,  // یۆرۆ
-            GBP: 1910,  // پاوەندی ئینگلیزی
-            TRY: 44.50, // لیرەی تورکی
-            SAR: 401,   // ڕیاڵی سعودی
-            AED: 410,   // دیرهەمی ئیماراتی
-            IRR: 0.036  // ڕیاڵی ئێرانی
-        };
-    } else if (bureauId === 'alqamar') {
-        // بۆرسەی القمر - نرخەکانی ئێستا
-        bureauRates = {
-            USD: 1500,  // دۆلاری ئەمریکی
-            EUR: 1640,  // یۆرۆ
-            GBP: 1905,  // پاوەندی ئینگلیزی
-            TRY: 44.20, // لیرەی تورکی
-            SAR: 399,   // ڕیاڵی سعودی
-            AED: 408,   // دیرهەمی ئیماراتی
-            IRR: 0.035  // ڕیاڵی ئێرانی
-        };
-    } else if (bureauId === 'taknerkh') {
-        // تاک نرخ - نرخەکانی ئێستا
-        bureauRates = {
-            USD: 1495,  // دۆلاری ئەمریکی
-            EUR: 1635,  // یۆرۆ
-            GBP: 1900,  // پاوەندی ئینگلیزی
-            TRY: 44.00, // لیرەی تورکی
-            SAR: 398,   // ڕیاڵی سعودی
-            AED: 407,   // دیرهەمی ئیماراتی
-            IRR: 0.034  // ڕیاڵی ئێرانی
-        };
-    } else {
-        // Default rates if new bureau added
-        bureauRates = {
-            USD: 1500,
-            EUR: 1640,
-            GBP: 1905,
-            TRY: 44.25,
-            SAR: 399,
-            AED: 408,
-            IRR: 0.035
-        };
-    }
+    // بۆرسەی هەتوان - نرخەکانی ئێستا
+    const bureauRates = {
+        USD: 1505,  // دۆلاری ئەمریکی
+        EUR: 1645,  // یۆرۆ
+        GBP: 1910,  // پاوەندی ئینگلیزی
+        TRY: 44.50, // لیرەی تورکی
+        SAR: 401,   // ڕیاڵی سعودی
+        AED: 410,   // دیرهەمی ئیماراتی
+        IRR: 0.036  // ڕیاڵی ئێرانی
+    };
     
     iraqiRates[bureauId] = {
         ...bureauRates,
@@ -488,20 +430,14 @@ function showAdminRatesEditor() {
                 <p class="admin-note">💡 نرخەکان بە دینار عێراقی بۆ 1 یەکەی دراو</p>
             </div>
             
-            <div class="bureaus-tabs">
+            <div class="bureaus-tabs" style="display: none;">
                 <button class="bureau-tab active" onclick="switchBureauTab('hetwan')" data-bureau="hetwan">
                     💱 هەتوان
-                </button>
-                <button class="bureau-tab" onclick="switchBureauTab('alqamar')" data-bureau="alqamar">
-                    🌙 القمر
-                </button>
-                <button class="bureau-tab" onclick="switchBureauTab('taknerkh')" data-bureau="taknerkh">
-                    💵 تاک نرخ
                 </button>
             </div>
             
             <form id="adminRatesForm" class="admin-rates-form">
-                ${['hetwan', 'alqamar', 'taknerkh'].map(bureauId => `
+                ${['hetwan'].map(bureauId => `
                     <div class="bureau-rates-section ${bureauId === 'hetwan' ? 'active' : ''}" data-bureau="${bureauId}">
                         <h4>${IRAQI_BUREAUS[bureauId].icon} ${IRAQI_BUREAUS[bureauId].name}</h4>
                         
@@ -594,8 +530,8 @@ function saveAdminRates() {
     
     const updatedRates = {};
     
-    // Collect rates from all bureaus
-    ['hetwan', 'alqamar', 'taknerkh'].forEach(bureauId => {
+    // Collect rates from Hetwan bureau
+    ['hetwan'].forEach(bureauId => {
         const bureauRates = {};
         
         IRAQI_CURRENCIES.forEach(currency => {
@@ -645,9 +581,7 @@ function resetToDefaults() {
     }
     
     // Reset to default rates
-    ['hetwan', 'alqamar', 'taknerkh'].forEach(bureauId => {
-        simulateBureauRates(bureauId);
-    });
+    simulateBureauRates('hetwan');
     
     // Save and refresh
     localStorage.setItem('iraqiRates', JSON.stringify(iraqiRates));
