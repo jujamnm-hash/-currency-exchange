@@ -215,41 +215,42 @@ function showAnalytics() {
                 <div class="analytics-card">
                     <div class="analytics-icon">🔮</div>
                     <h4>پێشبینی مانگی داهاتوو</h4>
-                    <p class="analytics-value">${analytics.prediction.toFixed(0)} IQD</p>
+                    <p class="analytics-value">${formatNumber(analytics.prediction, 0)} IQD</p>
                 </div>
                 
                 <div class="analytics-card">
                     <div class="analytics-icon">📊</div>
                     <h4>قازانجی ڕۆژانە</h4>
-                    <p class="analytics-value">${analytics.avgDailyProfit.toFixed(0)} IQD</p>
+                    <p class="analytics-value">${formatNumber(analytics.avgDailyProfit, 0)} IQD</p>
                 </div>
                 
                 <div class="analytics-card">
                     <div class="analytics-icon">⚡</div>
                     <h4>جوڵەی بازاڕ</h4>
-                    <p class="analytics-value">${analytics.volatility.toFixed(0)}</p>
+                    <p class="analytics-value">${formatNumber(analytics.volatility, 0)}</p>
                 </div>
             </div>
             
             ${analytics.bestDay ? `
                 <div class="best-performance">
                     <h4>⭐ باشترین ڕۆژ</h4>
-                    <p>${analytics.bestDay.date}: <strong>${analytics.bestDay.profit.toFixed(0)} IQD</strong></p>
+                    <p>${analytics.bestDay.date}: <strong>${formatNumber(analytics.bestDay.profit, 0)} IQD</strong></p>
                 </div>
             ` : ''}
             
             ${analytics.bestMonth ? `
                 <div class="best-performance">
                     <h4>🏆 باشترین مانگ</h4>
-                    <p>${analytics.bestMonth.month}: <strong>${analytics.bestMonth.profit.toFixed(0)} IQD</strong></p>
+                    <p>${analytics.bestMonth.month}: <strong>${formatNumber(analytics.bestMonth.profit, 0)} IQD</strong></p>
                 </div>
             ` : ''}
             
-            <button onclick="closeAnalytics()" class="btn btn-secondary">داخستن</button>
+            <button onclick="closeModal('analyticsModal')" class="btn btn-secondary">داخستن</button>
         </div>
     `;
     
-    showModal('شیکاری پێشکەوتوو', html);
+    const modal = createModal('analyticsModal', 'شیکاری پێشکەوتوو');
+    modal.innerHTML = html;
 }
 
 // ======================================
@@ -309,7 +310,8 @@ function showCategories() {
     `;
     html += '</div>';
     
-    showModal('بەڕێوەبردنی پۆل', html);
+    const modal = createModal('categoriesModal', 'بەڕێوەبردنی پۆل');
+    modal.innerHTML = html;
 }
 
 function addNewCategory() {
@@ -395,7 +397,8 @@ function showBudgetManager() {
     html += '</div>';
     html += '</div>';
     
-    showModal('بەڕێوەبردنی بودجە', html);
+    const modal = createModal('budgetModal', 'بەڕێوەبردنی بودجە');
+    modal.innerHTML = html;
 }
 
 function addBudget() {
@@ -468,7 +471,8 @@ function showTaxCalculator() {
         </div>
     `;
     
-    showModal('حیسابکەری باج', html);
+    const modal = createModal('taxModal', 'حیسابکەری باج');
+    modal.innerHTML = html;
 }
 
 function calculateTax() {
@@ -555,7 +559,8 @@ function showRecurringTransactions() {
     html += '</div>';
     html += '</div>';
     
-    showModal('گۆڕینەوەی دووبارەبووەوە', html);
+    const modal = createModal('recurringModal', 'گۆڕینەوەی دووبارەبووەوە');
+    modal.innerHTML = html;
 }
 
 function addRecurringTransaction() {
@@ -704,7 +709,8 @@ function showCalendarView() {
     html += '</div>';
     html += '</div>';
     
-    showModal('ڕۆژژمێری گۆڕینەوەکان', html);
+    const modal = createModal('calendarModal', 'ڕۆژژمێری گۆڕینەوەکان');
+    modal.innerHTML = html;
 }
 
 function getMonthName(month) {
@@ -784,7 +790,8 @@ function showBackupManager() {
         </div>
     `;
     
-    showModal('بەڕێوەبردنی Backup', html);
+    const modal = createModal('backupModal', 'بەڕێوەبردنی Backup');
+    modal.innerHTML = html;
 }
 
 function createBackup() {
