@@ -37,7 +37,19 @@ function setupNavigationEvents() {
     const mobileToggle = document.querySelector('.mobile-menu-toggle');
     if (mobileToggle) {
         mobileToggle.addEventListener('click', toggleMobileMenu);
+        mobileToggle.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            toggleMobileMenu();
+        }, { passive: false });
     }
+
+    // Fallback: delegate clicks in case markup changes or listeners are lost
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.mobile-menu-toggle')) {
+            e.preventDefault();
+            toggleMobileMenu();
+        }
+    });
     
     // Sidebar overlay
     const overlay = document.querySelector('.sidebar-overlay');
