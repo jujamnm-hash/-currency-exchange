@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="advanced-pro-styles.css">
     <link rel="stylesheet" href="enterprise-styles.css">
     <link rel="stylesheet" href="iraqi-exchange-styles.css">
+    <link rel="stylesheet" href="navigation.css">
     <link rel="stylesheet" href="mobile-responsive.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4CAF50">
@@ -22,6 +23,214 @@
     <script src="shared-utilities.js"></script>
 </head>
 <body class="light-mode">
+    <!-- App Wrapper -->
+    <div class="app-wrapper">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="#" class="sidebar-logo">
+                    <div class="logo-icon">💱</div>
+                    <span class="logo-text">گۆڕینەوەی دراو</span>
+                </a>
+                <button class="sidebar-toggle" onclick="toggleSidebar()">◀</button>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <!-- Main Section -->
+                <div class="menu-section">
+                    <div class="menu-section-title">سەرەکی</div>
+                    <ul class="menu-items">
+                        <li class="menu-item">
+                            <a href="#" class="menu-link active" data-section="dashboard" data-action="navigateToSection" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">📊</span>
+                                <span class="menu-text">داشبۆرد</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-section="transactions" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">💸</span>
+                                <span class="menu-text">گۆڕینەوەکان</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showIraqiBureausRates" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">🇮🇶</span>
+                                <span class="menu-text">بۆرسەکانی عێراق</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Analytics Section -->
+                <div class="menu-section">
+                    <div class="menu-section-title">شیکاری</div>
+                    <ul class="menu-items">
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showAnalytics" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">📈</span>
+                                <span class="menu-text">شیکاری AI</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showAdvancedReports" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">📋</span>
+                                <span class="menu-text">ڕاپۆرتەکان</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showPredictiveAnalytics" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">🔮</span>
+                                <span class="menu-text">پێشبینی</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showAdvancedCharts" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">📊</span>
+                                <span class="menu-text">چارتەکان</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Tools Section -->
+                <div class="menu-section">
+                    <div class="menu-section-title">ئامرازەکان</div>
+                    <ul class="menu-items">
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showBudgetManager" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">💰</span>
+                                <span class="menu-text">بودجە</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showGoals" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">🎯</span>
+                                <span class="menu-text">ئامانجەکان</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showCategories" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">🏷️</span>
+                                <span class="menu-text">پۆلەکان</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showCurrencyConverter" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">💱</span>
+                                <span class="menu-text">گۆڕەر</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showCalendarView" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">📅</span>
+                                <span class="menu-text">ڕۆژژمێر</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- More Section -->
+                <div class="menu-section">
+                    <div class="menu-section-title">زیاتر</div>
+                    <ul class="menu-items">
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showBackupManager" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">☁️</span>
+                                <span class="menu-text">پاشەکەوت</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showSettings" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">⚙️</span>
+                                <span class="menu-text">ڕێکخستنەکان</span>
+                            </a>
+                        </li>
+                        <li class="menu-item">
+                            <a href="#" class="menu-link" data-action="showHelp" onclick="handleMenuClick(event)">
+                                <span class="menu-icon">❓</span>
+                                <span class="menu-text">یارمەتی</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Sidebar Overlay for Mobile -->
+        <div class="sidebar-overlay" onclick="closeMobileMenu()"></div>
+        
+        <!-- Main Wrapper -->
+        <div class="main-wrapper" style="width: 100%;">
+            
+            <!-- Top Navbar -->
+            <nav class="top-navbar">
+                <div class="navbar-left">
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+                    <div class="navbar-search">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" placeholder="گەڕان لە گۆڕینەوەکان...">
+                    </div>
+                </div>
+                
+                <div class="navbar-right">
+                    <button class="navbar-action" onclick="showIraqiBureausRates()" title="بۆرسەکانی عێراق">
+                        🇮🇶
+                    </button>
+                    <button class="navbar-action" onclick="showQuickActions()" title="کردارە خێراکان">
+                        ⚡
+                    </button>
+                    <button class="navbar-action" onclick="showNotifications()" title="ئاگادارکردنەوەکان">
+                        🔔
+                        <span class="badge" style="display: none;">0</span>
+                    </button>
+                    <button class="navbar-action" onclick="toggleTheme()" title="گۆڕینی ڕەنگ">
+                        🌓
+                    </button>
+                    <div class="navbar-user" onclick="showUserMenu()">
+                        <div class="navbar-user-avatar">👤</div>
+                        <div class="navbar-user-info">
+                            <div class="navbar-user-name">بەکارهێنەر</div>
+                            <div class="navbar-user-role">Admin</div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h1 class="page-title">داشبۆرد</h1>
+                    <p class="page-subtitle">بینینێکی گشتی لە هەموو گۆڕینەوەکانت</p>
+                    <div class="breadcrumb">
+                        <div class="breadcrumb-item">
+                            <a href="#">سەرەکی</a>
+                        </div>
+                        <span>/</span>
+                        <div class="breadcrumb-item">داشبۆرد</div>
+                    </div>
+                </div>
+                
+                <!-- Summary Cards -->
+                <div class="summary">
+                    <div class="summary-item profit">
+                        <span class="label">کۆی قازانج:</span>
+                        <span class="value" id="totalProfit">0</span>
+                        <span class="currency">دینار</span>
+                    </div>
+                    <div class="summary-item loss">
+                        <span class="label">کۆی زەرەر:</span>
+                        <span class="value" id="totalLoss">0</span>
+                        <span class="currency">دینار</span>
+                    </div>
+                    <div class="summary-item balance">
+                        <span class="label">باڵانس:</span>
+                        <span class="value" id="netBalance">0</span>
+                        <span class="currency">دینار</span>
+                    </div>
+                </div>
+    
     <div class="container">
         <header>
             <div class="header-top">
@@ -274,5 +483,11 @@
     
     <!-- Iraqi Exchange Rates -->
     <script src="iraqi-exchange-rates.js" onerror="console.error('Failed to load iraqi-exchange-rates.js')"></script>
+    
+    <!-- Navigation System -->
+    <script src="navigation.js" onerror="console.error('Failed to load navigation.js')"></script>
+            </main>
+        </div>
+    </div>
 </body>
 </html>
