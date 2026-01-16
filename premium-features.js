@@ -704,6 +704,24 @@ function showQuickActions() {
             <button onclick="safeCall(showDashboardCustomizer)" class="quick-action-btn">
                 🎨<br>ڕازاندنەوە
             </button>
+            <button onclick="safeCall(showLiveRatesSettings)" class="quick-action-btn">
+                📡<br>نرخی راستەوخۆ
+            </button>
+            <button onclick="safeCall(showAdvancedCharts)" class="quick-action-btn">
+                📊<br>چارتی پێشکەوتوو
+            </button>
+            <button onclick="safeCall(showAdvancedFilters)" class="quick-action-btn">
+                🔍<br>فیلتەر
+            </button>
+            <button onclick="safeCall(exportToExcel)" class="quick-action-btn">
+                📊<br>Excel
+            </button>
+            <button onclick="safeCall(showComparisonTool)" class="quick-action-btn">
+                ⚖️<br>بەراوردکردن
+            </button>
+            <button onclick="safeCall(showRoleManager)" class="quick-action-btn">
+                🔐<br>ڕۆڵەکان
+            </button>
             <button onclick="showPortfolioManager()" class="quick-action-btn">
                 💼<br>پۆرتفۆڵیۆکان
             </button>
