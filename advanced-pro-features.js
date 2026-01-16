@@ -100,7 +100,8 @@ function showLiveRatesSettings() {
         </div>
     `;
     
-    showModal('ڕێکخستنی نرخی راستەوخۆ', html);
+    const modal = createModal('liveRatesModal', 'ڕێکخستنی نرخی راستەوخۆ');
+    modal.innerHTML = html;
 }
 
 function saveLiveRatesSettings() {
@@ -158,7 +159,8 @@ function showAdvancedCharts() {
         </div>
     `;
     
-    showModal('چارتی پێشکەوتوو', html);
+    const modal = createModal('advancedChartsModal', 'چارتی پێشکەوتوو');
+    modal.innerHTML = html;
 }
 
 function showAreaChart() {
@@ -262,7 +264,8 @@ function showHeatmap() {
     
     html += '</tbody></table></div>';
     
-    showModal('Heatmap', html);
+    const modal = createModal('heatmapModal', 'Heatmap');
+    modal.innerHTML = html;
 }
 
 // ======================================
@@ -334,7 +337,8 @@ function showAdvancedFilters() {
         </div>
     `;
     
-    showModal('فیلتەری پێشکەوتوو', html);
+    const modal = createModal('advancedFiltersModal', 'فیلتەری پێشکەوتوو');
+    modal.innerHTML = html;
 }
 
 function applyAdvancedFilters() {
@@ -425,7 +429,8 @@ function addAttachmentToTransaction(transactionId) {
         </div>
     `;
     
-    showModal('هاوپێچەکان', html);
+    const modal = createModal('attachmentModal_' + transactionId, 'هاوپێچەکان');
+    modal.innerHTML = html;
 }
 
 function saveAttachment(transactionId) {
@@ -502,7 +507,8 @@ function viewAttachment(transactionId) {
     
     html += '</div>';
     
-    showModal('هاوپێچەکان', html);
+    const modal = createModal('viewAttachmentModal_' + transactionId, 'هاوپێچەکان');
+    modal.innerHTML = html;
 }
 
 // ======================================
@@ -575,7 +581,8 @@ function showComparisonTool() {
         </div>
     `;
     
-    showModal('بەراوردکردن', html);
+    const modal = createModal('comparisonToolModal', 'بەراوردکردن');
+    modal.innerHTML = html;
 }
 
 function compareMonths() {
@@ -720,7 +727,8 @@ function showRoleManager() {
         </div>
     `;
     
-    showModal('سیستەمی ڕۆڵ', html);
+    const modal = createModal('roleManagerModal', 'سیستەمی ڕۆڵ');
+    modal.innerHTML = html;
 }
 
 function setRole(role) {
