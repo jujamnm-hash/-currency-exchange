@@ -9,7 +9,8 @@ const IRAQI_BUREAUS = {
         nameAr: 'بورصة هتوان',
         icon: '💱',
         url: 'https://www.hetwan.com',
-        apiUrl: 'https://www.hetwan.com/api/rates', // Hypothetical API
+        apiUrl: 'http://localhost:3000/api/rates', // Telegram Bot API
+        telegramBotEnabled: true,
         enabled: true,
         lastUpdate: null,
         rates: {}
@@ -59,11 +60,39 @@ async function fetchIraqiRates(silentUpdate = false) {
 }
 
 async function fetchFromBureau(bureauId) {
-    // Note: These bureaus don't have public APIs
-    // We use real market rates directly (updated manually)
-    // Future: Implement web scraping if needed
+    // Try to fetch from Telegram Bot API
+    const bureau = IRAQI_BUREAUS[bureauId];
     
-    // Skip API call - use simulated rates directly
+    if (bureau.telegramBotEnabled) {
+        try {
+            const response = await fetch(bureau.apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    iraqiRates[bureauId] = {
+                        ...data.data,
+                        timestamp: data.data.lastUpdate || new Date().toISOString(),
+                        source: bureau.name,
+                        fromTelegramBot: true
+                    };
+                    bureau.lastUpdate = new Date().toISOString();
+                    console.log('✅ Rates fetched from Telegram Bot API');
+                    return;
+                }
+            }
+        } catch (error) {
+            console.log('⚠️ Telegram Bot API not available, using local rates');
+        }
+    }
+    
+    // If Telegram Bot API fails, throw to use local rates
     throw new Error('API not available - using direct rates');
 }
 
