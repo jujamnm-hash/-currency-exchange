@@ -79,36 +79,12 @@ async function fetchIraqiRates(silentUpdate = false) {
 }
 
 async function fetchFromBureau(bureauId) {
-    const bureau = IRAQI_BUREAUS[bureauId];
+    // Note: These bureaus don't have public APIs
+    // We use real market rates directly (updated manually)
+    // Future: Implement web scraping if needed
     
-    // Note: These are hypothetical APIs
-    // In reality, you would need to implement web scraping or use actual APIs
-    
-    // Try direct API call (will likely fail without actual API)
-    try {
-        const response = await fetch(bureau.apiUrl, {
-            mode: 'cors',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            iraqiRates[bureauId] = {
-                ...data.rates,
-                timestamp: new Date().toISOString(),
-                source: bureau.name
-            };
-            bureau.lastUpdate = new Date().toISOString();
-            return;
-        }
-    } catch (error) {
-        // API call failed, will use simulated rates
-    }
-    
-    // If API doesn't exist, throw to use simulated rates
-    throw new Error('API not available');
+    // Skip API call - use simulated rates directly
+    throw new Error('API not available - using direct rates');
 }
 
 function simulateBureauRates(bureauId) {
@@ -185,8 +161,16 @@ function simulateBureauRates(bureauId) {
 // ==================== DISPLAY RATES ====================
 
 function showIraqiBureausRates() {
-    // Fetch latest rates silently (without notification)
-    fetchIraqiRates(true);
+    // Load existing rates from localStorage if available
+    if (Object.keys(iraqiRates).length === 0) {
+        const savedRates = localStorage.getItem('iraqiRates');
+        if (savedRates) {
+            iraqiRates = JSON.parse(savedRates);
+        } else {
+            // First time - fetch rates silently
+            fetchIraqiRates(true);
+        }
+    }
     
     const lastUpdate = localStorage.getItem('lastIraqiRatesUpdate');
     const timeAgo = lastUpdate ? getTimeAgo(new Date(lastUpdate)) : 'هەرگیز';
