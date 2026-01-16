@@ -285,9 +285,21 @@ body.dark-mode {
     display: none;
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 26px;
     cursor: pointer;
     color: var(--text-color);
+    padding: 8px 12px;
+    line-height: 1;
+    transition: all 0.3s;
+}
+
+.mobile-menu-toggle:hover {
+    background: var(--hover-bg);
+    border-radius: 8px;
+}
+
+.mobile-menu-toggle:active {
+    transform: scale(0.95);
 }
 
 .navbar-search {
@@ -484,21 +496,59 @@ body.dark-mode {
 
 @media screen and (max-width: 768px) {
     
-    .sidebar {
-        transform: translateX(-100%);
-        width: 280px;
+    /* Mobile Menu Toggle - Show on mobile */
+    .mobile-menu-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
     }
     
+    /* Sidebar - Hidden by default on mobile */
+    .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        height: 100vh;
+        width: 280px;
+        z-index: 1100;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Sidebar open state */
     .sidebar.mobile-open {
-        transform: translateX(0);
+        left: 0 !important;
+    }
+    
+    /* Overlay */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1099;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s;
+    }
+    
+    .sidebar-overlay.active {
+        opacity: 1 !important;
+        visibility: visible !important;
     }
     
     .top-navbar {
         left: 0 !important;
+        width: 100% !important;
+        padding: 0 15px;
     }
     
     .mobile-menu-toggle {
-        display: block;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
     }
     
     .navbar-search {

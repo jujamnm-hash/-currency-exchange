@@ -5,48 +5,6 @@
 /* Mobile-First Base Styles */
 @media screen and (max-width: 768px) {
     
-    /* Mobile Menu Toggle Button */
-    .mobile-menu-toggle {
-        display: block !important;
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: var(--text-color);
-        padding: 10px;
-        z-index: 1001;
-    }
-    
-    /* Sidebar Mobile Styles */
-    .sidebar {
-        position: fixed;
-        left: -280px;
-        top: 0;
-        height: 100vh;
-        width: 280px;
-        z-index: 1000;
-        transition: left 0.3s ease;
-    }
-    
-    .sidebar.mobile-open {
-        left: 0 !important;
-    }
-    
-    .sidebar-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 999;
-    }
-    
-    .sidebar-overlay.active {
-        display: block !important;
-    }
-    
     /* Body & Container */
     body {
         padding: 10px;
