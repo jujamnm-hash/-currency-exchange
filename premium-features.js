@@ -680,6 +680,24 @@ function showQuickActions() {
     
     modal.innerHTML = `
         <div class="quick-actions-grid">
+            <button onclick="showLanguageSelector()" class="quick-action-btn">
+                🌐<br>زمان
+            </button>
+            <button onclick="showAdvancedReports()" class="quick-action-btn">
+                📊<br>ڕاپۆرت
+            </button>
+            <button onclick="showWidgetManager()" class="quick-action-btn">
+                🎨<br>Widgets
+            </button>
+            <button onclick="showPredictiveAnalytics()" class="quick-action-btn">
+                🔮<br>پێشبینی
+            </button>
+            <button onclick="showAuditLog()" class="quick-action-btn">
+                🔍<br>Audit
+            </button>
+            <button onclick="showPerformanceMetrics()" class="quick-action-btn">
+                ⚡<br>کارایی
+            </button>
             <button onclick="safeCall(showAnalytics)" class="quick-action-btn">
                 📊<br>شیکاری
             </button>
