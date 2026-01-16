@@ -1,0 +1,625 @@
+/* ======================================
+   📱 MOBILE RESPONSIVE OPTIMIZATIONS
+   ====================================== */
+
+/* Mobile-First Base Styles */
+@media screen and (max-width: 768px) {
+    
+    /* Body & Container */
+    body {
+        padding: 10px;
+        font-size: 14px;
+    }
+    
+    .container {
+        max-width: 100%;
+        padding: 0;
+    }
+    
+    /* Header */
+    header {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .header-top {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .header-top h1 {
+        font-size: 20px;
+        text-align: center;
+        width: 100%;
+        margin: 0;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .btn-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    
+    /* Summary Cards */
+    .summary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .summary-item {
+        padding: 12px;
+        font-size: 13px;
+    }
+    
+    .summary-item .value {
+        font-size: 20px;
+    }
+    
+    /* Main Content */
+    .main-content {
+        grid-template-columns: 1fr !important;
+        gap: 15px;
+    }
+    
+    /* Form Section */
+    .form-section {
+        padding: 15px;
+    }
+    
+    .form-section h2 {
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+    
+    .form-group {
+        margin-bottom: 12px;
+    }
+    
+    .form-group label {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+    
+    .form-group input,
+    .form-group select {
+        padding: 12px;
+        font-size: 16px; /* Prevents zoom on iOS */
+        height: 48px; /* Better touch target */
+    }
+    
+    .btn {
+        padding: 14px;
+        font-size: 16px;
+        width: 100%;
+        margin: 5px 0;
+    }
+    
+    .btn-primary {
+        min-height: 48px;
+    }
+    
+    /* Transaction List */
+    .transactions-list {
+        padding: 15px;
+    }
+    
+    .transaction-item {
+        padding: 12px;
+        font-size: 13px;
+        flex-wrap: wrap;
+    }
+    
+    .transaction-info {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    
+    .transaction-info strong {
+        font-size: 15px;
+    }
+    
+    .transaction-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 8px;
+    }
+    
+    .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+        min-height: 36px;
+    }
+    
+    /* Chart Section */
+    .chart-section {
+        padding: 15px;
+        max-height: 350px;
+    }
+    
+    #transactionChart {
+        max-height: 250px !important;
+    }
+    
+    /* Statistics Grid */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px;
+    }
+    
+    .stat-card {
+        padding: 12px;
+    }
+    
+    .stat-card h3 {
+        font-size: 14px;
+    }
+    
+    .stat-card .value {
+        font-size: 20px;
+    }
+    
+    /* Modals */
+    .modal {
+        padding: 10px;
+    }
+    
+    .modal-content {
+        max-width: 95%;
+        margin: 20px auto;
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        padding: 12px 15px;
+        font-size: 16px;
+    }
+    
+    .modal-body {
+        padding: 15px;
+        font-size: 14px;
+    }
+    
+    .close-modal {
+        font-size: 24px;
+        width: 36px;
+        height: 36px;
+    }
+    
+    /* Quick Actions Grid */
+    .quick-actions-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        padding: 10px;
+    }
+    
+    .quick-action-btn {
+        padding: 12px 8px;
+        font-size: 11px;
+        min-height: 70px;
+        border-radius: 10px;
+    }
+    
+    .quick-action-btn br {
+        display: block;
+        margin: 4px 0;
+    }
+    
+    /* Tables */
+    table {
+        font-size: 12px;
+    }
+    
+    table th,
+    table td {
+        padding: 8px 4px;
+    }
+    
+    /* Forms in Modals */
+    .modal-body input,
+    .modal-body select,
+    .modal-body textarea {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+    
+    .modal-body button {
+        width: 100%;
+        margin: 5px 0;
+        padding: 14px;
+        font-size: 16px;
+        min-height: 48px;
+    }
+    
+    /* Iraqi Bureaus */
+    .bureaus-selector {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .bureau-checkbox {
+        width: 100%;
+        padding: 12px;
+        justify-content: center;
+    }
+    
+    .rates-table {
+        font-size: 11px;
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .rates-table th,
+    .rates-table td {
+        padding: 8px 4px;
+        min-width: 60px;
+    }
+    
+    .rates-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .rates-actions .btn {
+        width: 100%;
+    }
+    
+    /* Advanced Features */
+    .predictions-grid,
+    .metrics-grid,
+    .widgets-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .prediction-card,
+    .metric-card,
+    .widget-card {
+        padding: 15px;
+    }
+    
+    /* Languages Grid */
+    .languages-list {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    /* Report Types */
+    .report-types {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .report-btn {
+        padding: 12px;
+        font-size: 13px;
+    }
+    
+    /* Performance Report */
+    .report-summary {
+        grid-template-columns: 1fr;
+    }
+    
+    .report-stat {
+        flex-direction: column;
+        gap: 5px;
+        text-align: center;
+    }
+    
+    /* Calendar View */
+    .calendar-view {
+        font-size: 12px;
+    }
+    
+    .calendar-grid {
+        gap: 2px;
+    }
+    
+    .calendar-day {
+        min-height: 60px;
+        padding: 4px;
+        font-size: 11px;
+    }
+    
+    /* Budget Cards */
+    .budget-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Categories Grid */
+    .categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    /* Search Form */
+    .search-form {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    /* Converter */
+    .converter-row {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Portfolios */
+    .portfolio-item {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    /* Goals */
+    .goal-card {
+        padding: 12px;
+    }
+    
+    .goal-progress {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    /* Templates */
+    .template-item {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    /* Audit Log */
+    .log-filters {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .log-filters input,
+    .log-filters select {
+        width: 100%;
+    }
+    
+    .log-table {
+        font-size: 11px;
+        display: block;
+        overflow-x: auto;
+    }
+    
+    /* Info Boxes */
+    .info-box,
+    .info-note,
+    .real-rates-badge {
+        padding: 12px;
+        font-size: 13px;
+    }
+    
+    /* Charts Container */
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Comparison Tool */
+    .comparison-options {
+        flex-direction: column;
+    }
+    
+    .comparison-table-wrapper {
+        overflow-x: auto;
+    }
+    
+    /* Settings */
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Role Cards */
+    .roles-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Advanced Filters */
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Backup Manager */
+    .backup-list {
+        gap: 10px;
+    }
+    
+    .backup-item {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+}
+
+/* Small Mobile Devices (< 480px) */
+@media screen and (max-width: 480px) {
+    
+    body {
+        padding: 5px;
+        font-size: 13px;
+    }
+    
+    header {
+        padding: 10px;
+    }
+    
+    .header-top h1 {
+        font-size: 18px;
+    }
+    
+    .btn-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+    
+    .summary-item .value {
+        font-size: 18px;
+    }
+    
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+    
+    .quick-action-btn {
+        font-size: 10px;
+        padding: 10px 6px;
+        min-height: 65px;
+    }
+    
+    .modal-content {
+        max-width: 98%;
+        margin: 10px auto;
+    }
+    
+    .categories-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    table {
+        font-size: 10px;
+    }
+    
+    table th,
+    table td {
+        padding: 6px 2px;
+    }
+}
+
+/* Landscape Orientation */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    
+    .modal-content {
+        max-height: 90vh;
+    }
+    
+    .quick-actions-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .main-content {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+/* Touch-Friendly Enhancements */
+@media (hover: none) and (pointer: coarse) {
+    
+    /* Larger touch targets */
+    button,
+    .btn,
+    .btn-icon,
+    .btn-small {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .quick-action-btn {
+        min-height: 70px;
+    }
+    
+    input,
+    select,
+    textarea {
+        min-height: 44px;
+        font-size: 16px; /* Prevents auto-zoom on iOS */
+    }
+    
+    /* Remove hover effects */
+    .btn:hover,
+    .btn-icon:hover,
+    .transaction-item:hover {
+        transform: none;
+    }
+    
+    /* Add tap highlight */
+    * {
+        -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2);
+    }
+}
+
+/* Fix iOS Safari Issues */
+@supports (-webkit-touch-callout: none) {
+    
+    /* Fix input zoom */
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+    
+    /* Fix sticky positioning */
+    .modal {
+        position: fixed;
+    }
+    
+    /* Fix 100vh issue */
+    body {
+        min-height: -webkit-fill-available;
+    }
+}
+
+/* Print Styles */
+@media print {
+    
+    body {
+        background: white;
+        padding: 0;
+    }
+    
+    .header-actions,
+    .btn-icon,
+    .modal,
+    .transaction-actions {
+        display: none !important;
+    }
+    
+    .container {
+        max-width: 100%;
+    }
+    
+    .transaction-item {
+        page-break-inside: avoid;
+    }
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+    
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    
+    .btn,
+    .btn-icon {
+        border: 2px solid currentColor;
+    }
+    
+    .transaction-item {
+        border: 2px solid var(--border-color);
+    }
+}
