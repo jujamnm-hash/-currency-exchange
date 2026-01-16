@@ -450,6 +450,8 @@ if (typeof window !== 'undefined') {
 // Export functions for global use
 window.toggleSidebar = toggleSidebar;
 window.toggleMobileMenu = toggleMobileMenu;
+window.closeMobileMenu = closeMobileMenu;
+window.handleMenuClick = handleMenuClick;
 window.showUserMenu = showUserMenu;
 window.showProfile = showProfile;
 window.showHelp = showHelp;
