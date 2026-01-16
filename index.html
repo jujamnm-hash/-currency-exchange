@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>سیستەمی تۆماری گۆڕینەوەی دراو</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="ultimate-styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4CAF50">
     <meta name="description" content="سیستەمی تۆماری گۆڕینەوەی دراو و حسابکردنی قازانج و زەرەر">
@@ -17,6 +18,8 @@
                 <h1>💱 سیستەمی گۆڕینەوەی دراو</h1>
                 <div class="header-actions">
                     <button onclick="showQuickActions()" class="btn-icon" title="کردارە خێراکان">⚡</button>
+                    <button onclick="safeCall(showAnalytics)" class="btn-icon" title="شیکاری">📊</button>
+                    <button onclick="safeCall(showNotificationSettings)" class="btn-icon" title="ئاگادارکردنەوەکان">🔔</button>
                     <button onclick="toggleTheme()" class="btn-icon" title="گۆڕینی ڕەنگ">🌓</button>
                     <button onclick="showExportImport()" class="btn-icon" title="هەناردە/هاوردە">📥</button>
                     <button onclick="showSettings()" class="btn-icon" title="ڕێکخستنەکان">⚙️</button>
@@ -248,5 +251,8 @@
                 });
         }
     </script>
+    
+    <!-- Ultimate Features -->
+    <script src="ultimate-features.js" onerror="console.error('Failed to load ultimate-features.js')"></script>
 </body>
 </html>

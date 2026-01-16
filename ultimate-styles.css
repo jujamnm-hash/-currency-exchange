@@ -1,0 +1,606 @@
+/* ======================================
+   🎨 ULTIMATE FEATURES STYLES
+   ====================================== */
+
+/* Analytics Cards */
+.analytics-container {
+    padding: 20px;
+}
+
+.analytics-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.analytics-card {
+    background: var(--bg-secondary);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.analytics-card:hover {
+    transform: translateY(-5px);
+}
+
+.analytics-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.analytics-card h4 {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.analytics-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.best-performance {
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+    border-right: 4px solid var(--primary-color);
+}
+
+/* Categories Manager */
+.categories-manager {
+    padding: 20px;
+}
+
+.categories-grid {
+    display: grid;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-secondary);
+    padding: 12px 15px;
+    border-radius: 10px;
+}
+
+.category-icon {
+    font-size: 1.5rem;
+}
+
+.category-name {
+    flex: 1;
+    font-weight: 500;
+}
+
+.add-category-form {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+}
+
+.add-category-form input {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+/* Budget Manager */
+.budget-manager {
+    padding: 20px;
+}
+
+.budget-form {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.budget-form input,
+.budget-form select {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+.budgets-list {
+    display: grid;
+    gap: 15px;
+}
+
+.budget-item {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 10px;
+    border-right: 4px solid var(--success-color);
+}
+
+.budget-item.over-budget {
+    border-right-color: var(--danger-color);
+}
+
+.budget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.budget-period {
+    background: var(--primary-color);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+}
+
+.budget-progress {
+    margin: 10px 0;
+}
+
+.progress-bar {
+    background: rgba(0,0,0,0.1);
+    height: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s, background 0.3s;
+}
+
+.budget-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Tax Calculator */
+.tax-calculator {
+    padding: 20px;
+}
+
+.tax-form {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.tax-form label {
+    display: block;
+    margin: 10px 0 5px;
+    font-weight: 500;
+}
+
+.tax-form input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+.tax-result {
+    margin-top: 20px;
+}
+
+.tax-breakdown {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.tax-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tax-row.total {
+    border-bottom: none;
+    border-top: 2px solid var(--primary-color);
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* Recurring Transactions */
+.recurring-manager {
+    padding: 20px;
+}
+
+.recurring-form {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.recurring-form select,
+.recurring-form input {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+.recurring-list {
+    display: grid;
+    gap: 10px;
+}
+
+.recurring-item {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.recurring-info {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.recurring-badge {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.recurring-badge.buy {
+    background: #27ae60;
+    color: white;
+}
+
+.recurring-badge.sell {
+    background: #e74c3c;
+    color: white;
+}
+
+.recurring-frequency {
+    background: var(--primary-color);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+}
+
+.recurring-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Calendar View */
+.calendar-view {
+    padding: 20px;
+}
+
+.calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.calendar-header {
+    background: var(--primary-color);
+    color: white;
+    padding: 10px;
+    text-align: center;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.calendar-day:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.calendar-day.empty {
+    background: transparent;
+    cursor: default;
+}
+
+.calendar-day.today {
+    border: 2px solid var(--primary-color);
+    font-weight: bold;
+}
+
+.calendar-day.has-transactions {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--primary-color) 100%);
+    color: white;
+}
+
+.day-number {
+    font-weight: 500;
+}
+
+.day-indicator {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.day-indicator.profit {
+    background: #27ae60;
+    color: white;
+}
+
+.day-indicator.loss {
+    background: #e74c3c;
+    color: white;
+}
+
+.day-details {
+    padding: 20px;
+}
+
+.transaction-card {
+    background: var(--bg-secondary);
+    padding: 12px;
+    border-radius: 8px;
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.transaction-type {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.transaction-type.buy {
+    background: #27ae60;
+    color: white;
+}
+
+.transaction-type.sell {
+    background: #e74c3c;
+    color: white;
+}
+
+/* Backup Manager */
+.backup-manager {
+    padding: 20px;
+}
+
+.backup-status {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.backup-options {
+    margin: 20px 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.checkbox-label:hover {
+    background: var(--border-color);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.backup-actions {
+    display: grid;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.backup-info {
+    background: #fff3cd;
+    color: #856404;
+    padding: 15px;
+    border-radius: 10px;
+    border-right: 4px solid #ffc107;
+    margin-top: 20px;
+}
+
+.backup-info h4 {
+    margin-bottom: 10px;
+}
+
+.backup-info ul {
+    margin: 0;
+    padding-right: 20px;
+}
+
+.backup-info li {
+    margin: 5px 0;
+}
+
+/* Dashboard Customizer */
+.dashboard-customizer {
+    padding: 20px;
+}
+
+.widgets-list {
+    display: grid;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.widget-item {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+
+/* Common Button Styles */
+.btn-icon {
+    background: transparent;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.btn-icon:hover {
+    background: var(--border-color);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .analytics-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .calendar-grid {
+        gap: 3px;
+    }
+    
+    .calendar-day {
+        padding: 5px;
+        font-size: 0.85rem;
+    }
+    
+    .day-indicator {
+        width: 15px;
+        height: 15px;
+        font-size: 0.6rem;
+    }
+    
+    .recurring-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .backup-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Dark Mode Adjustments */
+body.dark-mode .backup-info {
+    background: #332200;
+    color: #ffc107;
+    border-right-color: #ffc107;
+}
+
+/* Text Utilities */
+.text-danger {
+    color: var(--danger-color);
+}
+
+.text-success {
+    color: var(--success-color);
+}
+
+.profit {
+    color: var(--success-color);
+}
+
+.loss {
+    color: var(--danger-color);
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.analytics-card,
+.category-item,
+.budget-item,
+.recurring-item,
+.transaction-card {
+    animation: slideIn 0.3s ease-out;
+}

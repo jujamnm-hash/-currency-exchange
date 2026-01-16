@@ -680,6 +680,30 @@ function showQuickActions() {
     
     modal.innerHTML = `
         <div class="quick-actions-grid">
+            <button onclick="safeCall(showAnalytics)" class="quick-action-btn">
+                📊<br>شیکاری
+            </button>
+            <button onclick="safeCall(showCategories)" class="quick-action-btn">
+                🏷️<br>پۆلێنکردن
+            </button>
+            <button onclick="safeCall(showBudgetManager)" class="quick-action-btn">
+                💰<br>بودجە
+            </button>
+            <button onclick="safeCall(showTaxCalculator)" class="quick-action-btn">
+                📊<br>باج
+            </button>
+            <button onclick="safeCall(showRecurringTransactions)" class="quick-action-btn">
+                🔄<br>دووبارە
+            </button>
+            <button onclick="safeCall(showCalendarView)" class="quick-action-btn">
+                📅<br>ڕۆژژمێر
+            </button>
+            <button onclick="safeCall(showBackupManager)" class="quick-action-btn">
+                ☁️<br>Backup
+            </button>
+            <button onclick="safeCall(showDashboardCustomizer)" class="quick-action-btn">
+                🎨<br>ڕازاندنەوە
+            </button>
             <button onclick="showPortfolioManager()" class="quick-action-btn">
                 💼<br>پۆرتفۆڵیۆکان
             </button>
