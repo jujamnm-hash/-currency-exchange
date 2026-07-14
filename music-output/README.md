@@ -18,3 +18,13 @@ Regenerate:
 ```bash
 python3 generate_rap_beat.py
 ```
+
+## Candy Shop × Zakaria fusion (original)
+
+| File | Description |
+|------|-------------|
+| `candy-zakaria-fusion-rap.mp3` | ~101s bounce-rap + Kurdish color (BPM 96) |
+| `lyrics-candy-zakaria-ku.txt` | Original Sorani rap lyrics |
+| `generate_candy_zakaria_fusion.py` | Generator script |
+
+Inspired by the *energy* of mid-2000s club rap and the *mood* of Kurdish romantic ballads — not a cover of Candy Shop or Nemzani.
