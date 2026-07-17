@@ -1,0 +1,30 @@
+{
+  "name": "currency-exchange-app",
+  "version": "1.0.0",
+  "description": "سیستەمی گۆڕینەوەی دراو - ئەپی ئایفۆن و وێب",
+  "private": true,
+  "scripts": {
+    "icons:generate": "node scripts/generate-icons.js",
+    "www:prepare": "node scripts/prepare-www.js",
+    "cap:sync": "npm run www:prepare && npx cap sync",
+    "cap:sync:ios": "npm run www:prepare && npx cap sync ios",
+    "cap:open:ios": "npx cap open ios",
+    "ios:prepare": "npm run icons:generate && npm run cap:sync:ios",
+    "postinstall": "npm run icons:generate"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/splash-screen": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0",
+    "sharp": "^0.33.5"
+  },
+  "capacitor": {
+    "platforms": [
+      "ios"
+    ]
+  }
+}

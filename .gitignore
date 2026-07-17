@@ -19,3 +19,9 @@ node_modules/
 # Build files (if you add build process later)
 dist/
 build/
+www/
+
+# Capacitor
+ios/App/Pods/
+ios/App/build/
+DerivedData/

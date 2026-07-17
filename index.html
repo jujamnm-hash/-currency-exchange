@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="گۆڕینەوەی دراو">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
     <title>سیستەمی تۆماری گۆڕینەوەی دراو</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="ultimate-styles.css">
@@ -15,6 +21,7 @@
     <link rel="stylesheet" href="admin-rates-styles.css">
     <link rel="stylesheet" href="navigation.css">
     <link rel="stylesheet" href="mobile-responsive.css">
+    <link rel="stylesheet" href="ios-styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4CAF50">
     <meta name="description" content="سیستەمی تۆماری گۆڕینەوەی دراو و حسابکردنی قازانج و زەرەر">
@@ -22,6 +29,7 @@
     
     <!-- Shared Utilities - Load First -->
     <script src="shared-utilities.js"></script>
+    <script src="ios-bridge.js"></script>
 </head>
 <body class="light-mode">
     <!-- App Wrapper -->
@@ -488,6 +496,9 @@
     
     <!-- Navigation System -->
     <script src="navigation.js" onerror="console.error('Failed to load navigation.js')"></script>
+
+    <!-- iOS Add to Home Screen prompt -->
+    <script src="ios-install.js"></script>
             </main>
         </div>
     </div>

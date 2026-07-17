@@ -119,6 +119,21 @@ https://your-username.github.io/currency-exchange/
 - دەتوانیت وەک shortcut لە Home Screen زیادی بکەیت
 - کاردەکات وەک ئەپێکی ڕاستەقینە!
 
+#### 5. بەکارهێنان لەسەر ئایفۆن 📱
+
+دوو ڕێگە هەیە:
+
+**ڕێگای خێرا (PWA):** لە Safari بکەرەوە و **Add to Home Screen** بکە.
+
+**ڕێگای ئەپی ڕاستەقینە (App Store):** بۆ بیلدکردن لە Mac:
+```bash
+npm install
+npm run ios:prepare
+npm run cap:open:ios
+```
+
+ڕێنمایی تەواو: **IPHONE-BUILD-GUIDE.md**
+
 ## تێبینییە گرنگەکان
 
 - ✅ کاردەکات لەسەر هەموو وێبگەڕێک
