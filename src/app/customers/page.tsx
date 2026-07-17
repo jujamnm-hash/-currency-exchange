@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PageLayout } from "@/components/PageLayout";
 import { Phone, Car, Search } from "lucide-react";
+import { api } from "@/lib/api-client";
 
 interface Customer {
   id: string;
@@ -21,9 +22,7 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchCustomers = () => {
-    const url = search ? `/api/customers?search=${encodeURIComponent(search)}` : "/api/customers";
-    fetch(url)
-      .then((r) => r.json())
+    api.customers(search || undefined)
       .then(setCustomers)
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -36,16 +35,10 @@ export default function CustomersPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/customers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    if (res.ok) {
-      setShowForm(false);
-      setForm({ name: "", phone: "", plateNumber: "" });
-      fetchCustomers();
-    }
+    await api.createCustomer(form);
+    setShowForm(false);
+    setForm({ name: "", phone: "", plateNumber: "" });
+    fetchCustomers();
   };
 
   return (

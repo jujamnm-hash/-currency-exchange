@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle, AlertCircle, Loader2, Database } from "lucide-react";
+import { api } from "@/lib/api-client";
+import { useLocalMode } from "@/lib/local-db";
 
 interface SetupStatus {
   ok: boolean;
@@ -18,8 +20,7 @@ export default function SetupPage() {
 
   const checkStatus = () => {
     setLoading(true);
-    fetch("/api/setup")
-      .then((r) => r.json())
+    api.setupStatus()
       .then(setStatus)
       .catch(() => setStatus({ ok: false, status: "error", message: "هەڵە لە پەیوەندی" }))
       .finally(() => setLoading(false));
@@ -60,16 +61,16 @@ export default function SetupPage() {
             <Loader2 className="animate-spin" size={20} />
             <span>پشکنین...</span>
           </div>
-        ) : status?.status === "ready" ? (
+        ) : status?.status === "ready" || useLocalMode() ? (
           <div className="mt-6">
             <CheckCircle className="mx-auto text-green-500" size={48} />
             <p className="mt-3 font-medium text-green-700">سیستەم ئامادەیە!</p>
-            <p className="text-sm text-gray-500">{status.serviceCount} خزمەتگوزاری دانراوە</p>
+            <p className="text-sm text-gray-500">{status?.serviceCount ?? 8} خزمەتگوزاری دانراوە</p>
             <Link href="/dashboard" className="btn-primary mt-4 inline-flex">
               بڕۆ بۆ داشبۆرد
             </Link>
           </div>
-        ) : status?.status === "no_database" ? (
+        ) : status?.status === "no_database" && !useLocalMode() ? (
           <div className="mt-6">
             <AlertCircle className="mx-auto text-yellow-500" size={48} />
             <p className="mt-3 font-medium text-yellow-700">داتابەیس دانەنراوە</p>

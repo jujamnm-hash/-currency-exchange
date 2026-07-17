@@ -6,6 +6,7 @@ import { PageLayout } from "@/components/PageLayout";
 import { formatIQD, VEHICLE_LABELS } from "@/lib/utils";
 import type { VehicleType } from "@prisma/client";
 import { Check } from "lucide-react";
+import { api } from "@/lib/api-client";
 
 interface Service {
   id: string;
@@ -43,13 +44,11 @@ export default function NewOrderPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch("/api/services")
-      .then((r) => r.json())
-      .then((data) => {
-        setServices(data.services ?? []);
-        setAddons(data.addons ?? []);
-        setMultipliers(data.multipliers ?? []);
-      });
+    api.services().then((data) => {
+      setServices(data.services ?? []);
+      setAddons(data.addons ?? []);
+      setMultipliers(data.multipliers ?? []);
+    });
   }, []);
 
   const multiplier = multipliers.find((m) => m.vehicleType === vehicleType)?.multiplier ?? 1;
@@ -85,27 +84,17 @@ export default function NewOrderPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plateNumber,
-          vehicleType,
-          customerName,
-          customerPhone,
-          serviceIds: selectedServices,
-          addonIds: selectedAddons,
-          paymentMethod,
-          notes,
-        }),
+      await api.createOrder({
+        plateNumber,
+        vehicleType,
+        customerName,
+        customerPhone,
+        serviceIds: selectedServices,
+        addonIds: selectedAddons,
+        paymentMethod: paymentMethod as "CASH" | "CARD" | "MOBILE_PAYMENT",
+        notes,
       });
-
-      if (res.ok) {
-        router.push("/queue");
-      } else {
-        const err = await res.json();
-        alert(err.error ?? "هەڵەیەک ڕوویدا");
-      }
+      router.push("/queue");
     } catch {
       alert("هەڵە لە ناردنی داواکاری");
     } finally {

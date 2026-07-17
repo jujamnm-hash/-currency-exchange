@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PageLayout } from "@/components/PageLayout";
 import { Settings, Users, Package, Clock } from "lucide-react";
+import { api } from "@/lib/api-client";
 
 interface SettingsData {
   settings: Record<string, string>;
@@ -16,8 +17,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => r.json())
+    api.settings()
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
