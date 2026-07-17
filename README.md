@@ -31,7 +31,29 @@
 
 ---
 
-## 🚀 دامەزراندن لەسەر Vercel
+## 🚀 دامەزراندنی یەک-کلیک لەسەر Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjujamnm-hash%2F-currency-exchange&project-name=ghassle-hawler&env=DATABASE_URL&envDescription=PostgreSQL%20connection%20string%20from%20Vercel%20Postgres%20or%20Neon)
+
+### هەنگاوەکانی خێرا (٣ خولەک):
+
+1. **کلیک لە دوگمەی سەرەوە بکە** → Vercel پڕۆژەکە import دەکات
+2. **Storage زیاد بکە:** Vercel Dashboard → Storage → **Create Database** → **Postgres** → Connect to Project
+3. **Deploy** بکە — داتابەیس خۆکار ڕێکدەخرێت
+4. بڕۆ بۆ: `https://your-app.vercel.app/setup` — دڵنیابە لە ئامادەیی
+5. **مۆبایل:** لینکەکە لە وێبگەڕ بکەرەوە → Add to Home Screen
+
+### دوای دامەزراندن
+
+| پەڕە | لینک |
+|------|------|
+| داشبۆرد | `/dashboard` |
+| ڕێکخستن | `/setup` |
+| داواکاری نوێ | `/new-order` |
+
+---
+
+## 🚀 دامەزراندن لەسەر Vercel (وردەکاری)
 
 ### هەنگاو ١: داتابەیس دروست بکە
 
