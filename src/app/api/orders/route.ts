@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateOrderNumber, calculateOrderTotal } from "@/lib/utils";
+import { generateOrderNumber, calculateOrderTotal, getNextStatus } from "@/lib/utils";
 import { VehicleType, OrderStatus } from "@prisma/client";
+
+export const dynamic = "force-static";
 
 export async function GET(request: NextRequest) {
   try {
@@ -145,5 +147,61 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Orders POST error:", error);
     return NextResponse.json({ error: "هەڵە لە دروستکردنی داواکاری" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, action, status, employeeId } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "ناسنامەی داواکاری پێویستە" }, { status: 400 });
+    }
+
+    const order = await prisma.order.findUnique({ where: { id } });
+    if (!order) {
+      return NextResponse.json({ error: "داواکاری نەدۆزرایەوە" }, { status: 404 });
+    }
+
+    let updateData: Record<string, unknown> = {};
+
+    if (action === "advance") {
+      const nextStatus = getNextStatus(order.status);
+      if (!nextStatus) {
+        return NextResponse.json({ error: "قۆناغی داهاتوو نییە" }, { status: 400 });
+      }
+      updateData = {
+        status: nextStatus,
+        startedAt: order.startedAt ?? (nextStatus !== "WAITING" ? new Date() : undefined),
+        completedAt: nextStatus === "COMPLETED" ? new Date() : undefined,
+        queuePosition: nextStatus === "COMPLETED" ? null : order.queuePosition,
+      };
+    } else if (action === "cancel") {
+      updateData = { status: "CANCELLED", queuePosition: null };
+    } else if (status) {
+      updateData = {
+        status: status as OrderStatus,
+        completedAt: status === "COMPLETED" ? new Date() : undefined,
+        queuePosition: status === "COMPLETED" || status === "CANCELLED" ? null : order.queuePosition,
+      };
+    }
+
+    if (employeeId) updateData.employeeId = employeeId;
+
+    const updated = await prisma.order.update({
+      where: { id },
+      data: updateData,
+      include: {
+        items: { include: { service: true } },
+        addons: { include: { addon: true } },
+        payment: true,
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("Orders PATCH error:", error);
+    return NextResponse.json({ error: "هەڵە لە نوێکردنەوەی داواکاری" }, { status: 500 });
   }
 }

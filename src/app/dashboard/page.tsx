@@ -7,6 +7,7 @@ import { OrderCard } from "@/components/OrderCard";
 import { formatIQD } from "@/lib/utils";
 import { Car, Users, Clock, DollarSign, Calendar, TrendingUp } from "lucide-react";
 import Link from "next/link";
+import { api } from "@/lib/api-client";
 
 interface DashboardData {
   todayOrders: number;
@@ -18,11 +19,11 @@ interface DashboardData {
     id: string;
     orderNumber: string;
     plateNumber: string;
-    vehicleType: "SEDAN";
-    customerName?: string;
-    status: "WAITING";
+    vehicleType: string;
+    customerName?: string | null;
+    status: string;
     total: number;
-    queuePosition?: number;
+    queuePosition?: number | null;
     createdAt: string;
     items?: { service: { nameKu: string } }[];
   }>;
@@ -33,8 +34,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/dashboard")
-      .then((r) => r.json())
+    api.dashboard()
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));

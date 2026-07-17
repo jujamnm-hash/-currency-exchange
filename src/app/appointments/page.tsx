@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PageLayout } from "@/components/PageLayout";
 import { formatIQD } from "@/lib/utils";
 import { Calendar, Clock } from "lucide-react";
+import { api } from "@/lib/api-client";
 
 interface Appointment {
   id: string;
@@ -30,8 +31,7 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/appointments")
-      .then((r) => r.json())
+    api.appointments()
       .then(setAppointments)
       .catch(console.error)
       .finally(() => setLoading(false));

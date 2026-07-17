@@ -6,6 +6,7 @@ import { StatCard } from "@/components/StatCard";
 import { formatIQD, VEHICLE_LABELS } from "@/lib/utils";
 import { DollarSign, ShoppingBag, CreditCard, Banknote } from "lucide-react";
 import type { VehicleType } from "@prisma/client";
+import { api } from "@/lib/api-client";
 
 interface ReportData {
   period: string;
@@ -25,8 +26,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/reports?period=${period}`)
-      .then((r) => r.json())
+    api.reports(period)
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));

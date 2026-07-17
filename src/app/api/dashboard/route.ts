@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { startOfDay, endOfDay } from "date-fns";
 
+export const dynamic = "force-static";
+
 export async function GET() {
   try {
     const today = new Date();

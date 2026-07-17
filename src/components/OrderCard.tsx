@@ -6,9 +6,9 @@ interface OrderCardProps {
     id: string;
     orderNumber: string;
     plateNumber: string;
-    vehicleType: VehicleType;
+    vehicleType: VehicleType | string;
     customerName?: string | null;
-    status: OrderStatus;
+    status: OrderStatus | string;
     total: number;
     queuePosition?: number | null;
     createdAt: string | Date;
@@ -38,7 +38,7 @@ export function OrderCard({ order, onAdvance, onCancel, showActions = true }: Or
             <div>
               <p className="font-bold text-gray-900">{order.plateNumber}</p>
               <p className="text-xs text-gray-500">
-                {VEHICLE_LABELS[order.vehicleType]}
+                {VEHICLE_LABELS[order.vehicleType as VehicleType] ?? order.vehicleType}
                 {order.customerName && ` • ${order.customerName}`}
               </p>
             </div>
@@ -50,8 +50,8 @@ export function OrderCard({ order, onAdvance, onCancel, showActions = true }: Or
           )}
         </div>
         <div className="text-left">
-          <span className={`status-badge ${ORDER_STATUS_COLORS[order.status]}`}>
-            {ORDER_STATUS_LABELS[order.status]}
+          <span className={`status-badge ${ORDER_STATUS_COLORS[order.status as OrderStatus] ?? "bg-gray-100 text-gray-600"}`}>
+            {ORDER_STATUS_LABELS[order.status as OrderStatus] ?? order.status}
           </span>
           <p className="mt-1 text-sm font-bold text-brand-700">{formatIQD(order.total)}</p>
           <p className="text-[10px] text-gray-400">{time}</p>

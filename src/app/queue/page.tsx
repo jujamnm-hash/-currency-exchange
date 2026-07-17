@@ -5,6 +5,7 @@ import { PageLayout } from "@/components/PageLayout";
 import { OrderCard } from "@/components/OrderCard";
 import { ORDER_STATUS_LABELS } from "@/lib/utils";
 import type { OrderStatus, VehicleType } from "@prisma/client";
+import { api } from "@/lib/api-client";
 
 interface Order {
   id: string;
@@ -25,9 +26,7 @@ export default function QueuePage() {
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = useCallback(() => {
-    const url = filter === "active" ? "/api/orders?active=true" : "/api/orders";
-    fetch(url)
-      .then((r) => r.json())
+    api.orders(filter === "active")
       .then(setOrders)
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -41,21 +40,13 @@ export default function QueuePage() {
   }, [fetchOrders]);
 
   const advanceOrder = async (id: string) => {
-    await fetch(`/api/orders/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "advance" }),
-    });
+    await api.advanceOrder(id);
     fetchOrders();
   };
 
   const cancelOrder = async (id: string) => {
     if (!confirm("دڵنیایت لە هەڵوەشاندنەوە؟")) return;
-    await fetch(`/api/orders/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "cancel" }),
-    });
+    await api.cancelOrder(id);
     fetchOrders();
   };
 

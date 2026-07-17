@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { startOfDay, endOfDay, subDays } from "date-fns";
 
+export const dynamic = "force-static";
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

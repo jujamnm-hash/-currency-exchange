@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-static";
+
 export async function GET() {
   try {
     if (!process.env.DATABASE_URL) {

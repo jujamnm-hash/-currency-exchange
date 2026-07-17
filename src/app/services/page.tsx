@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PageLayout } from "@/components/PageLayout";
 import { formatIQD } from "@/lib/utils";
 import { Droplets, Sparkles, Star, Armchair, Gem, Cog } from "lucide-react";
+import { api } from "@/lib/api-client";
 
 interface Service {
   id: string;
@@ -43,8 +44,7 @@ export default function ServicesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/services")
-      .then((r) => r.json())
+    api.services()
       .then((data) => {
         setServices(data.services ?? []);
         setAddons(data.addons ?? []);
