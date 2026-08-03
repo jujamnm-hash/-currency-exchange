@@ -1,133 +1,102 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { PageLayout } from "@/components/PageLayout";
-import { Settings, Users, Package, Clock } from "lucide-react";
-import { api } from "@/lib/api-client";
-
-interface SettingsData {
-  settings: Record<string, string>;
-  employees: { id: string; name: string; role: string; phone?: string }[];
-  inventory: { id: string; nameKu: string; quantity: number; unit: string; minQuantity: number }[];
-  membershipPlans: { id: string; nameKu: string; washesCount: number; price: number; validityDays: number }[];
-}
+import { useRef, useState } from "react";
+import {
+  clearAll,
+  exportJson,
+  importJson,
+} from "@/lib/debt-db";
+import { useDebtDb } from "@/lib/use-debt-db";
 
 export default function SettingsPage() {
-  const [data, setData] = useState<SettingsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { refresh } = useDebtDb();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [msg, setMsg] = useState("");
 
-  useEffect(() => {
-    api.settings()
-      .then(setData)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <PageLayout title="ڕێکخستن" subtitle="بارکردن...">
-        <div className="card h-40 animate-pulse bg-gray-100" />
-      </PageLayout>
-    );
+  function doExport() {
+    const blob = new Blob([exportJson()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `qarzname-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setMsg("باکئاپ داگیرا");
   }
 
-  const s = data?.settings ?? {};
+  function onImportFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const ok = importJson(String(reader.result || ""));
+      if (ok) {
+        refresh();
+        setMsg("داتا هێنرایەوە بە سەرکەوتوویی");
+      } else {
+        setMsg("فایلی نادروست");
+      }
+    };
+    reader.readAsText(file);
+  }
 
   return (
-    <PageLayout title="ڕێکخستن" subtitle="زانیاری و ڕێکخستنی دوکان">
-      <div className="card mb-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-brand-600">
-            <Settings size={20} />
-          </div>
-          <div>
-            <p className="font-bold text-gray-900">{s.shop_name ?? "غەسلی هەولێر"}</p>
-            <p className="text-xs text-gray-500">{s.shop_name_en}</p>
-          </div>
-        </div>
-        <div className="grid gap-3 text-sm">
-          <div className="flex justify-between border-b border-gray-100 pb-2">
-            <span className="text-gray-500">ناونیشان</span>
-            <span className="font-medium">{s.address}</span>
-          </div>
-          <div className="flex justify-between border-b border-gray-100 pb-2">
-            <span className="text-gray-500">تەلەفۆن</span>
-            <span className="font-medium" dir="ltr">{s.phone}</span>
-          </div>
-          <div className="flex justify-between border-b border-gray-100 pb-2">
-            <span className="text-gray-500">کاتەکانی کار</span>
-            <span className="font-medium">{s.opening_time} - {s.closing_time}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">دراو</span>
-            <span className="font-medium">{s.currency}</span>
-          </div>
-        </div>
+    <div className="animate-fade-up">
+      <div className="hero-brand">
+        <h1>ڕێکخستن</h1>
+        <p>باکئاپ، هێنانەوە، و دامەزراندن لەسەر ئایپاد.</p>
       </div>
 
-      {data?.employees && data.employees.length > 0 && (
-        <div className="mb-4">
-          <h3 className="mb-3 flex items-center gap-2 font-bold text-gray-900">
-            <Users size={18} /> کارمەندەکان
-          </h3>
-          <div className="flex flex-col gap-2">
-            {data.employees.map((emp) => (
-              <div key={emp.id} className="card flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{emp.name}</p>
-                  <p className="text-xs text-gray-400">{emp.role}</p>
-                </div>
-                {emp.phone && <p className="text-xs text-gray-500" dir="ltr">{emp.phone}</p>}
-              </div>
-            ))}
-          </div>
+      <div className="panel form-grid mb-4">
+        <h2 className="m-0 font-display text-xl">داتا</h2>
+        <p className="m-0 text-ink-400 text-sm leading-relaxed">
+          هەموو قەرز و کەسەکان لەسەر ئایپادەکەت دەمێننەوە (localStorage). باکئاپ بکە بۆ پاراستن.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <button className="btn btn-primary" onClick={doExport}>داگرتنی باکئاپ</button>
+          <button className="btn btn-secondary" onClick={() => fileRef.current?.click()}>
+            هێنانەوەی باکئاپ
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onImportFile(f);
+              e.target.value = "";
+            }}
+          />
         </div>
-      )}
+        <button
+          className="btn btn-danger w-fit"
+          onClick={() => {
+            if (confirm("هەموو داتا بسڕدرێتەوە؟ ئەمە ناگەڕێتەوە.")) {
+              clearAll();
+              refresh();
+              setMsg("هەموو داتا سڕایەوە");
+            }
+          }}
+        >
+          سڕینەوەی هەموو داتا
+        </button>
+        {msg && <p className="m-0 text-mint-700 font-semibold">{msg}</p>}
+      </div>
 
-      {data?.membershipPlans && data.membershipPlans.length > 0 && (
-        <div className="mb-4">
-          <h3 className="mb-3 flex items-center gap-2 font-bold text-gray-900">
-            <Clock size={18} /> پلانی ئەندامێتی
-          </h3>
-          {data.membershipPlans.map((plan) => (
-            <div key={plan.id} className="card">
-              <p className="font-medium">{plan.nameKu}</p>
-              <p className="text-xs text-gray-500">
-                {plan.washesCount} غەسڵ / {plan.validityDays} ڕۆژ
-              </p>
-              <p className="mt-1 font-bold text-brand-700">
-                {new Intl.NumberFormat("ar-IQ").format(plan.price)} د.ع
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {data?.inventory && data.inventory.length > 0 && (
-        <div>
-          <h3 className="mb-3 flex items-center gap-2 font-bold text-gray-900">
-            <Package size={18} /> کۆگا
-          </h3>
-          <div className="flex flex-col gap-2">
-            {data.inventory.map((item) => {
-              const low = item.quantity <= item.minQuantity;
-              return (
-                <div key={item.id} className={`card ${low ? "border-red-200 bg-red-50" : ""}`}>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">{item.nameKu}</p>
-                    <p className={`text-sm font-bold ${low ? "text-red-600" : "text-gray-900"}`}>
-                      {item.quantity} {item.unit}
-                    </p>
-                  </div>
-                  {low && (
-                    <p className="mt-1 text-[10px] text-red-500">⚠️ کەمبووەتەوە!</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </PageLayout>
+      <div className="panel form-grid">
+        <h2 className="m-0 font-display text-xl">دامەزراندن لەسەر ئایپاد</h2>
+        <ol className="m-0 pr-5 text-ink-600 leading-8">
+          <li>لە <strong>Safari</strong> ئەم ماڵپەڕە بکەرەوە</li>
+          <li>کرتە لە دوگمەی <strong>Share</strong> (⬆️) بکە</li>
+          <li>
+            <strong>Add to Home Screen</strong> هەڵبژێرە
+          </li>
+          <li>ناو: <strong>قەرزنامە</strong> — Add دابگرە</li>
+        </ol>
+        <p className="m-0 text-sm text-ink-400 leading-relaxed">
+          بۆ ئەپی ڕاستەقینەی App Store / Xcode، بڕوانە فایلی{" "}
+          <code className="text-mint-700">IPAD-BUILD-GUIDE.md</code> لە پڕۆژەکە.
+        </p>
+      </div>
+    </div>
   );
 }

@@ -1,156 +1,59 @@
-# 🚗 غەسلی هەولێر | Ghassle Hawler Car Wash System
+# قەرزنامە | سیستەمی تۆمارکردنی قەرز بۆ ئایپاد
 
-سیستەمێکی تەواوی بەڕێوەبردنی غەسلی سەیارە بە ستانداردی جیهانی، گونجاو بۆ مۆبایل و ئامادە بۆ دامەزراندن لەسەر Vercel.
+ئەپێکی سادە و خێرا بۆ تۆمارکردنی قەرز — گونجاو بۆ ئایپاد، کوردی (RTL)، و کاری دەکات بەبێ ئینتەرنێت دوای یەکەم بارکردن.
 
-## ✨ تایبەتمەندییەکان
+## تایبەتمەندییەکان
 
-### بەڕێوەبردنی داواکاری
-- زیادکردنی داواکاری نوێ بە خێرایی
-- ڕیزی چاوەڕوانی بە شوێنکەوتنی قۆناغەکان
-- ٨ قۆناغی ستاندارد: چاوەڕوانی → تۆمار → غەسڵ → وشککردن → وردەکاری → پشکنین → ئامادە → تەواو
+- تۆمارکردنی کەسەکان
+- قەرزی «بۆ من» و «لە من»
+- پارەدانی بەشی یان تەواو
+- داشبۆردی باڵانس
+- باکئاپ / هێنانەوەی JSON
+- دامەزراندن وەک ئەپ لەسەر ئایپاد (PWA)
+- ئامادە بۆ بیلدی Capacitor / Xcode
 
-### خزمەتگوزارییەکان
-- ٨ جۆری خزمەتگوزاری (سادە، تەواو، پڕیمیەم، ناوەوە، واکس، ئەنجام، ژێرەوە، پەنجەرە)
-- ٥ زیادەی داخڵ (بۆنخۆش، تایەر، داشبۆرد، ئارۆما، قاپ)
-- نرخی جیاواز بەپێی جۆری سەیارە (سەدان، SUV، بارهەڵگر، ڤان، ماتۆرسکیل، لوکس)
+## دامەزراندن لەسەر ئایپاد (خێرا)
 
-### کڕیار و ئەندامێتی
-- تۆمارکردنی کڕیار و سەیارەکان
-- سیستەمی خاڵی دڵسۆزی
-- پلانی ئەندامێتی مانگانە
+1. لە Safari بکەرەوە:
+   `https://jujamnm-hash.github.io/-currency-exchange/dashboard/`
+2. Share → **Add to Home Screen**
+3. ناو: **قەرزنامە**
 
-### کات و ڕاپۆرت
-- بەڕێوەبردنی کاتی پێشوەختە
-- ڕاپۆرتی داهات (ڕۆژانە، هەفتانە، مانگانە)
-- شیکردنەوەی خزمەتگوزاری و جۆری سەیارە
+وردەکاری زیاتر: [`IPAD-BUILD-GUIDE.md`](./IPAD-BUILD-GUIDE.md)
 
-### مۆبایل و PWA
-- دیزاینی Mobile-First
-- دەتوانیت وەک ئەپ لە Home Screen دابنێیت
-- ناوچەی خوارەوەی گەڕان بۆ مۆبایل
-
----
-
-## 🌐 لینکی ئەپ (ئامادەیە ئێستا!)
-
-### GitHub Pages — کار دەکات لە مۆبایل:
-
-**https://jujamnm-hash.github.io/-currency-exchange/dashboard/**
-
-- داتا لەسەر مۆبایلەکەت پارێزراو دەبێت (localStorage)
-- وەک ئەپ: **Add to Home Screen**
-
-### Vercel (ئەگەر داتابەیسی سێرڤەر دەتەوێت):
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjujamnm-hash%2F-currency-exchange&project-name=ghassle-hawler&env=DATABASE_URL&envDescription=PostgreSQL%20connection%20string%20from%20Vercel%20Postgres%20or%20Neon)
-
----
-
-## 🚀 دامەزراندن لەسەر Vercel (وردەکاری)
-
-### هەنگاو ١: داتابەیس دروست بکە
-
-لە [Vercel Dashboard](https://vercel.com) → Storage → Create Database → **Postgres**
-
-یان لە [Neon](https://neon.tech) / [Supabase](https://supabase.com) داتابەیسێکی بەخۆڕایی دروست بکە.
-
-### هەنگاو ٢: پڕۆژەکە بەرز بکەرەوە
-
-1. ئەم repository ـە بەرز بکەرەوە بۆ GitHub
-2. بڕۆ بۆ [vercel.com/new](https://vercel.com/new)
-3. Repository هەڵبژێرە
-4. لە **Environment Variables** زیاد بکە:
-   ```
-   DATABASE_URL=postgresql://...
-   ```
-5. کلیک لە **Deploy** بکە
-
-### هەنگاو ٣: داتابەیس ڕێکبخە
-
-دوای دامەزراندن، لە Vercel Terminal یان لە local:
+## گەشەپێدان
 
 ```bash
-npx prisma db push
-npx tsx prisma/seed.ts
-```
-
----
-
-## 💻 گەشەپێدان لە Local
-
-```bash
-# دامەزراندنی پاکێجەکان
 npm install
-
-# ڕێکخستنی .env
-cp .env.example .env
-# DATABASE_URL بنووسە
-
-# داتابەیس
-npm run db:setup
-
-# دەستپێکردن
+npm run icons:generate
 npm run dev
 ```
 
-بڕۆ بۆ: http://localhost:3000
+بڕۆ بۆ http://localhost:3000
 
----
+## بیلدی static (GitHub Pages)
 
-## 📱 بەکارهێنان وەک ئەپ لە مۆبایل
-
-1. لینکی Vercel لە وێبگەڕی مۆبایل بکەرەوە
-2. **iOS**: Share → Add to Home Screen
-3. **Android**: Menu → Add to Home Screen / Install App
-
----
-
-## 🗂️ پێکهاتەی پڕۆژە
-
-```
-ghassle-hawler/
-├── prisma/
-│   ├── schema.prisma    # مۆدێلی داتابەیس
-│   └── seed.ts          # داتای سەرەتایی
-├── public/
-│   ├── manifest.json    # PWA
-│   └── icon.svg
-├── src/
-│   ├── app/
-│   │   ├── api/         # API Routes
-│   │   ├── dashboard/   # داشبۆرد
-│   │   ├── queue/       # ڕیز
-│   │   ├── new-order/   # داواکاری نوێ
-│   │   ├── customers/   # کڕیارەکان
-│   │   ├── appointments/# کاتەکان
-│   │   ├── services/    # خزمەتگوزارییەکان
-│   │   ├── reports/     # ڕاپۆرت
-│   │   └── settings/    # ڕێکخستن
-│   ├── components/
-│   └── lib/
-└── vercel.json
+```bash
+STATIC_EXPORT=true npm run build
 ```
 
----
+دەرچوون لە `out/`
 
-## 🔧 تەکنەلۆژیا
+## بیلدی ئایپاد (Capacitor + Xcode)
 
-- **Next.js 15** - React Framework
-- **Prisma** - ORM بۆ داتابەیس
-- **PostgreSQL** - داتابەیس
-- **Tailwind CSS** - ستایل
-- **TypeScript** - جۆری پارێزراو
-- **PWA** - ئەپ لە مۆبایل
+پێویستی بە Mac هەیە:
 
----
+```bash
+npm install
+npm run ios:prepare
+npm run cap:open:ios
+```
 
-## 📞 زانیاری دوکان (سەرەتایی)
+## تەکنەلۆژیا
 
-- **ناو:** غەسلی هەولێر
-- **ناونیشان:** هەولێر، کوردستان
-- **کاتەکانی کار:** 08:00 - 22:00
-- **دراو:** دیناری عێراقی (IQD)
+- Next.js 15 (static export)
+- localStorage (داتا لەسەر ئامێر)
+- Capacitor 7 (iOS / iPad)
+- Tailwind CSS · TypeScript
 
----
-
-دروستکراوە بە ❤️ بۆ غەسلی هەولێر
+دروستکراوە بۆ تۆمارکردنی قەرز لەسەر ئایپاد.
