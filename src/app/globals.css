@@ -454,6 +454,25 @@
     border-color: var(--mint-bright);
     box-shadow: 0 0 0 3px rgba(47, 153, 122, 0.15);
   }
+
+  .install-step {
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+  }
+
+  .install-num {
+    flex-shrink: 0;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #217b62, #0b2420);
+    color: #f4faf7;
+    font-weight: 700;
+  }
 }
 
 @media (min-width: 900px) {

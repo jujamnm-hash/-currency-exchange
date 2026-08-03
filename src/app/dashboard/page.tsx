@@ -49,8 +49,17 @@ export default function DashboardPage() {
         <Link href="/new-debt/" className="btn btn-primary w-full">
           <Plus size={18} /> قەرزی نوێ تۆمار بکە
         </Link>
+        <Link href="/install/" className="btn btn-copper w-full">
+          دامەزراندن لەسەر ئایپاد
+        </Link>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 mt-3">
         <Link href="/people/" className="btn btn-secondary w-full">
           بینینی کەسەکان
+        </Link>
+        <Link href="/settings/" className="btn btn-secondary w-full">
+          ڕێکخستن / باکئاپ
         </Link>
       </div>
 
