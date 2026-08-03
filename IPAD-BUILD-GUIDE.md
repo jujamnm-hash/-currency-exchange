@@ -1,13 +1,30 @@
 # 📱 ڕێنمایی دامەزراندن و بیلد — قەرزنامە بۆ ئایپاد
 
-دوو ڕێگا هەیە بۆ بەکارهێنان لەسەر ئایپاد:
+سێ ڕێگا هەیە بۆ بەکارهێنان لەسەر ئایپاد:
 
 1. **PWA (خێرا و بەخۆڕایی)** — ئێستا دەتوانیت دامەزرێنیت
-2. **ئەپی ڕاستەقینە (Xcode / App Store)** — پێویستی بە Mac هەیە
+2. **ئەپی SwiftUI ـی ڕاستەقینە** — کۆدی Swift · بیلد لە Xcode ⭐ پێشنیارکراو
+3. **Capacitor (وێب لەناو ئەپ)** — هەمان UI وێب لەناو iOS wrapper
+
+> لەسەر Linux ناتوانرێت IPA بیلد بکرێت. بیلدی Swift تەنها لەسەر **Mac + Xcode** دەکرێت.
 
 ---
 
-## 🚀 ڕێگای ١: Add to Home Screen (ئێستا)
+## 🍎 ڕێگای Swift (ئەپی ڕاستەقینە)
+
+```bash
+git clone https://github.com/jujamnm-hash/-currency-exchange.git
+cd -currency-exchange/QarznameSwift
+open Qarzname.xcodeproj
+```
+
+لە Xcode: Team هەڵبژێرە → ئامێر: iPad → ▶️ **Run**
+
+وردەکاری: [`QarznameSwift/README.md`](./QarznameSwift/README.md)
+
+---
+
+## 🚀 ڕێگای PWA: Add to Home Screen (ئێستا)
 
 1. لە **Safari** لەسەر ئایپادەکەت بکەرەوە:
 

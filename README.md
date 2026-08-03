@@ -39,9 +39,19 @@ STATIC_EXPORT=true npm run build
 
 دەرچوون لە `out/`
 
-## بیلدی ئایپاد (Capacitor + Xcode)
+## بیلدی Swift ـی ڕاستەقینە (پێشنیارکراو)
 
-پێویستی بە Mac هەیە:
+پێویستی بە Mac + Xcode هەیە:
+
+```bash
+cd QarznameSwift
+open Qarzname.xcodeproj
+```
+
+پاشان لە Xcode: Team → iPad → ▶️ Run  
+ڕێنمایی: [`QarznameSwift/README.md`](./QarznameSwift/README.md)
+
+## بیلدی Capacitor (وێب لەناو iOS)
 
 ```bash
 npm install
