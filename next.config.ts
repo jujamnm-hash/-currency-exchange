@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const isStatic = process.env.STATIC_EXPORT === "true";
-const basePath = isStatic ? "/-currency-exchange" : "";
+const isCap = process.env.CAP_BUILD === "true";
+const basePath = isStatic && !isCap ? "/-currency-exchange" : "";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,

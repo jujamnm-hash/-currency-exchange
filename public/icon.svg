@@ -1,14 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" rx="96" fill="#1d4ed8"/>
-  <path d="M256 80c-60 0-108 48-108 108v20c-30 10-52 38-52 72v100c0 16 12 28 28 28h264c16 0 28-12 28-28V280c0-34-22-62-52-72v-20c0-60-48-108-108-108z" fill="#ffffff" opacity="0.9"/>
-  <path d="M180 200h152c8 0 14 6 14 14v20c0 8-6 14-14 14H180c-8 0-14-6-14-14v-20c0-8 6-14 14-14z" fill="#1d4ed8"/>
-  <circle cx="180" cy="380" r="36" fill="#ffffff"/>
-  <circle cx="332" cy="380" r="36" fill="#ffffff"/>
-  <circle cx="180" cy="380" r="18" fill="#1d4ed8"/>
-  <circle cx="332" cy="380" r="18" fill="#1d4ed8"/>
-  <path d="M200 140c0-8 6-14 14-14h84c8 0 14 6 14 14v20H200v-20z" fill="#60a5fa"/>
-  <path d="M120 160c20-30 50-50 136-50s116 20 136 50" stroke="#22d3ee" stroke-width="8" stroke-linecap="round" fill="none"/>
-  <circle cx="380" cy="120" r="12" fill="#22d3ee"/>
-  <circle cx="400" cy="140" r="8" fill="#22d3ee" opacity="0.7"/>
-  <circle cx="360" cy="100" r="6" fill="#22d3ee" opacity="0.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="قەرزنامە">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#217B62"/>
+      <stop offset="100%" stop-color="#0B2420"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#g)"/>
+  <path fill="#E8F2EE" d="M146 120h220c18 0 32 14 32 32v208c0 18-14 32-32 32H146c-18 0-32-14-32-32V152c0-18 14-32 32-32z" opacity=".95"/>
+  <path fill="#0B2420" d="M176 188h160v28H176zm0 56h160v28H176zm0 56h110v28H176z"/>
+  <circle cx="360" cy="360" r="78" fill="#C4894A"/>
+  <path fill="#FFF8F0" d="M338 360h44v18h-44zm8-28h28v18h-28z"/>
 </svg>
