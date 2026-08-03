@@ -35,6 +35,9 @@ Thumbs.db
 # Vercel
 .vercel
 
+# Netlify
+.netlify/
+
 # TypeScript
 next-env.d.ts
 *.tsbuildinfo
