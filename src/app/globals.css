@@ -59,3 +59,93 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
+
+/* Classic org-chart connectors (boxes + lines) */
+.org-chart,
+.org-chart ul {
+  display: flex;
+  justify-content: center;
+  padding-top: 1.25rem;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.org-chart-root {
+  padding-top: 0 !important;
+}
+
+.org-chart li {
+  list-style: none;
+  text-align: center;
+  position: relative;
+  padding: 1.25rem 0.6rem 0;
+}
+
+/* Vertical line from parent down */
+.org-chart li::before,
+.org-chart li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  border-top: 2px solid #5eead4;
+  width: 50%;
+  height: 1.25rem;
+}
+
+.org-chart li::after {
+  right: auto;
+  left: 50%;
+  border-left: 2px solid #5eead4;
+}
+
+/* Remove connectors for single child / edges */
+.org-chart li:only-child::before,
+.org-chart li:only-child::after {
+  display: none;
+}
+
+.org-chart li:only-child {
+  padding-top: 0;
+}
+
+.org-chart li:first-child::before,
+.org-chart li:last-child::after {
+  border: 0 none;
+}
+
+.org-chart li:last-child::before {
+  border-right: 2px solid #5eead4;
+  border-radius: 0 0.35rem 0 0;
+}
+
+.org-chart li:first-child::after {
+  border-radius: 0.35rem 0 0 0;
+}
+
+/* Stem from box down to children */
+.org-chart ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  border-left: 2px solid #5eead4;
+  width: 0;
+  height: 1.25rem;
+}
+
+.org-chart-root > li > ul::before {
+  height: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .org-chart .org-node {
+    width: 140px;
+    padding: 0.65rem;
+  }
+
+  .org-chart li {
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+}

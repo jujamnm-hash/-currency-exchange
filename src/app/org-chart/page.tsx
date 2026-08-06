@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageLayout } from "@/components/PageLayout";
+import { ShapeOrgChart, type ChartNode } from "@/components/ShapeOrgChart";
 import { api } from "@/lib/api-client";
+import { buildDepartmentTree } from "@/lib/utils";
+import { Users, Network, ZoomIn, ZoomOut } from "lucide-react";
 
 interface OrgNode {
   id: string;
@@ -15,68 +18,141 @@ interface OrgNode {
   children: OrgNode[];
 }
 
-function OrgCard({ node, depth = 0 }: { node: OrgNode; depth?: number }) {
-  return (
-    <div className="relative">
-      <div
-        className="rounded-2xl border border-brand-100 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        style={{ marginInlineStart: Math.min(depth, 4) * 12 }}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-bold text-slate-900">{node.name}</p>
-            <p className="mt-0.5 text-xs font-medium text-brand-700">
-              {node.position?.name || "بێ پۆست"}
-            </p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              {[node.department?.name, node.market?.name, node.employeeCode].filter(Boolean).join(" · ")}
-            </p>
-          </div>
-          {typeof node.position?.level === "number" && (
-            <span className="rounded-lg bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-800">
-              L{node.position.level}
-            </span>
-          )}
-        </div>
-      </div>
-      {node.children.length > 0 && (
-        <div className="mt-2 space-y-2 border-r-2 border-brand-100 pr-3 mr-3">
-          {node.children.map((child) => (
-            <OrgCard key={child.id} node={child} depth={depth + 1} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
+interface Department {
+  id: string;
+  name: string;
+  code?: string | null;
+  description?: string | null;
+  parentId?: string | null;
+}
+
+type ViewMode = "employees" | "departments";
+
+function mapEmployeeTree(nodes: OrgNode[], depth = 0): ChartNode[] {
+  return nodes.map((n) => ({
+    id: n.id,
+    title: n.name,
+    subtitle: n.position?.name || "بێ پۆست",
+    meta: [n.department?.name, n.market?.name, n.employeeCode].filter(Boolean).join(" · "),
+    badge: typeof n.position?.level === "number" ? `L${n.position.level}` : undefined,
+    tone: depth === 0 ? "root" : n.children.length ? "mid" : "leaf",
+    children: mapEmployeeTree(n.children, depth + 1),
+  }));
+}
+
+function mapDepartmentTree(
+  nodes: Array<Department & { children: Array<Department & { children: unknown[] }> }>,
+  depth = 0
+): ChartNode[] {
+  return nodes.map((d) => ({
+    id: d.id,
+    title: d.name,
+    subtitle: d.code || "بەشی ئیداری",
+    meta: d.description || undefined,
+    badge: depth === 0 ? "سەرەکی" : `ئاست ${depth + 1}`,
+    tone: depth === 0 ? "root" : d.children.length ? "mid" : "leaf",
+    children: mapDepartmentTree(
+      d.children as Array<Department & { children: Array<Department & { children: unknown[] }> }>,
+      depth + 1
+    ),
+  }));
 }
 
 export default function OrgChartPage() {
   const [tree, setTree] = useState<OrgNode[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<ViewMode>("employees");
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
-    api
-      .orgChart()
-      .then((data) => setTree(data.tree as OrgNode[]))
+    Promise.all([api.orgChart(), api.departments()])
+      .then(([org, deps]) => {
+        setTree(org.tree as OrgNode[]);
+        setDepartments(deps);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
+  const employeeChart = useMemo(() => mapEmployeeTree(tree), [tree]);
+  const departmentChart = useMemo(
+    () => mapDepartmentTree(buildDepartmentTree(departments)),
+    [departments]
+  );
+
+  const roots = mode === "employees" ? employeeChart : departmentChart;
+  const emptyMessage =
+    mode === "employees"
+      ? "هێشتا کارمەند یان پەیوەندی سەرپەرشتیاری زیاد نەکراوە"
+      : "هێشتا بەشی ئیداری زیاد نەکراوە";
+
   return (
-    <PageLayout title="ڕێکخستنی کارمەندان" subtitle="نەخشەی هەیکەلی سەرپەرشتیاری و کارمەندان">
+    <PageLayout
+      title="نەخشەی هەیکەل"
+      subtitle="چارت و شەیپی هەیکەلی ئیداری و کارمەندان"
+      action={
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="btn-secondary !px-2.5 !py-2"
+            onClick={() => setZoom((z) => Math.max(0.6, Number((z - 0.1).toFixed(1))))}
+            title="بچووککردنەوە"
+          >
+            <ZoomOut size={16} />
+          </button>
+          <button
+            type="button"
+            className="btn-secondary !px-2.5 !py-2"
+            onClick={() => setZoom((z) => Math.min(1.4, Number((z + 0.1).toFixed(1))))}
+            title="گەورەکردن"
+          >
+            <ZoomIn size={16} />
+          </button>
+        </div>
+      }
+    >
+      <div className="mb-4 flex gap-2 rounded-2xl bg-white/80 p-1.5 shadow-sm border border-slate-100">
+        <button
+          type="button"
+          onClick={() => setMode("employees")}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+            mode === "employees" ? "bg-brand-700 text-white shadow" : "text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <Users size={16} />
+          هەیکەلی کارمەندان
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("departments")}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+            mode === "departments" ? "bg-brand-700 text-white shadow" : "text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <Network size={16} />
+          هەیکەلی ئیداری
+        </button>
+      </div>
+
       {loading ? (
-        <div className="card h-40 animate-pulse bg-slate-100" />
-      ) : tree.length ? (
-        <div className="space-y-4">
-          {tree.map((node) => (
-            <OrgCard key={node.id} node={node} />
-          ))}
+        <div className="card h-56 animate-pulse bg-slate-100" />
+      ) : roots.length ? (
+        <div className="overflow-x-auto">
+          <div
+            className="origin-top transition-transform duration-200"
+            style={{ transform: `scale(${zoom})`, transformOrigin: "top center", width: `${100 / zoom}%` }}
+          >
+            <ShapeOrgChart roots={roots} />
+          </div>
         </div>
       ) : (
-        <div className="card text-center text-sm text-slate-400">
-          هێشتا کارمەند یان پەیوەندی سەرپەرشتیاری زیاد نەکراوە
-        </div>
+        <div className="card text-center text-sm text-slate-400">{emptyMessage}</div>
       )}
+
+      <p className="mt-3 text-center text-xs text-slate-400">
+        بۆکسەکان = پۆست/بەش · هێڵەکان = پەیوەندی سەرپەرشتیاری یان ژێربەش
+      </p>
     </PageLayout>
   );
 }
