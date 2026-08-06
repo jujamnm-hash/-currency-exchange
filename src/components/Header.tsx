@@ -1,14 +1,21 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Building2 } from "lucide-react";
 
 export function Header() {
-  const now = new Date().toLocaleDateString("ku-IQ", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const [now, setNow] = useState("");
+
+  useEffect(() => {
+    setNow(
+      new Date().toLocaleDateString("ku-IQ", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    );
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 backdrop-blur-md">
@@ -22,7 +29,9 @@ export function Header() {
             <p className="text-[10px] text-slate-500 md:text-xs">سیستەمی ڕێکخستنی کارمەندان</p>
           </div>
         </div>
-        <p className="text-[10px] text-slate-400 md:text-xs">{now}</p>
+        <p className="text-[10px] text-slate-400 md:text-xs" suppressHydrationWarning>
+          {now}
+        </p>
       </div>
     </header>
   );

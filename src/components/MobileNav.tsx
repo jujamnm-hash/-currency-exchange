@@ -18,8 +18,8 @@ const navItems = [
   { href: "/markets", label: "مارکێت", icon: Store },
   { href: "/structure", label: "هەیکەل", icon: Network },
   { href: "/positions", label: "پۆست", icon: Briefcase },
-  { href: "/org-chart", label: "ڕێکخستن", icon: GitBranch },
-  { href: "/settings", label: "ڕێکخستنەکان", icon: Settings },
+  { href: "/org-chart", label: "نەخشە", icon: GitBranch },
+  { href: "/settings", label: "ڕێکخستن", icon: Settings },
 ];
 
 export function MobileNav() {
