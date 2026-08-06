@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { PageLayout } from "@/components/PageLayout";
 import { Modal } from "@/components/Modal";
+import { EmployeeAutocomplete } from "@/components/EmployeeAutocomplete";
 import { api } from "@/lib/api-client";
-import { Pencil, Trash2, Search, UserPlus } from "lucide-react";
+import { Pencil, Trash2, UserPlus } from "lucide-react";
 
 interface Ref {
   id: string;
@@ -43,6 +44,7 @@ const emptyForm = {
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [markets, setMarkets] = useState<Ref[]>([]);
   const [departments, setDepartments] = useState<Ref[]>([]);
   const [positions, setPositions] = useState<Ref[]>([]);
@@ -51,15 +53,18 @@ export default function EmployeesPage() {
   const [editing, setEditing] = useState<Employee | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [pickedHint, setPickedHint] = useState("");
 
   async function load(q?: string) {
-    const [emps, mkts, deps, pos] = await Promise.all([
+    const [emps, all, mkts, deps, pos] = await Promise.all([
       api.employees(q),
+      api.employees(),
       api.markets(),
       api.departments(),
       api.positions(),
     ]);
     setEmployees(emps as Employee[]);
+    setAllEmployees(all as Employee[]);
     setMarkets(mkts);
     setDepartments(deps);
     setPositions(pos);
@@ -69,13 +74,7 @@ export default function EmployeesPage() {
     load().catch(console.error);
   }, []);
 
-  function openCreate() {
-    setEditing(null);
-    setForm(emptyForm);
-    setOpen(true);
-  }
-
-  function openEdit(e: Employee) {
+  function fillFromEmployee(e: Employee) {
     setEditing(e);
     setForm({
       name: e.name,
@@ -88,7 +87,19 @@ export default function EmployeesPage() {
       managerId: e.managerId || "",
       notes: e.notes || "",
     });
+    setPickedHint(`زانیاریەکانی «${e.name}» هاتنەوە`);
     setOpen(true);
+  }
+
+  function openCreate() {
+    setEditing(null);
+    setForm(emptyForm);
+    setPickedHint("");
+    setOpen(true);
+  }
+
+  function openEdit(e: Employee) {
+    fillFromEmployee(e);
   }
 
   async function save() {
@@ -109,6 +120,7 @@ export default function EmployeesPage() {
       if (editing) await api.updateEmployee(editing.id, payload);
       else await api.createEmployee(payload);
       setOpen(false);
+      setPickedHint("");
       await load(search || undefined);
     } finally {
       setSaving(false);
@@ -121,15 +133,33 @@ export default function EmployeesPage() {
     await load(search || undefined);
   }
 
-  async function onSearch(value: string) {
+  function onSearchChange(value: string) {
     setSearch(value);
-    await load(value || undefined);
+    // debounce-ish: filter locally from allEmployees for snappy UX
+    const q = value.trim().toLowerCase();
+    if (!q) {
+      setEmployees(allEmployees);
+      return;
+    }
+    setEmployees(
+      allEmployees.filter(
+        (e) =>
+          e.name.toLowerCase().includes(q) ||
+          e.phone?.includes(q) ||
+          e.employeeCode?.toLowerCase().includes(q)
+      )
+    );
+  }
+
+  function onPickFromSearch(emp: Employee) {
+    setSearch(emp.name);
+    fillFromEmployee(emp);
   }
 
   return (
     <PageLayout
       title="کارمەندان"
-      subtitle="دروستکردن و دابەشکردنی کارمەند بە مارکێت، بەش و پۆست"
+      subtitle="ناو بنووسە → لە لیست هەڵبژێرە → هەموو زانیاری دێتەوە"
       action={
         <button onClick={openCreate} className="btn-primary">
           <UserPlus size={16} />
@@ -137,23 +167,32 @@ export default function EmployeesPage() {
         </button>
       }
     >
-      <div className="mb-4 relative">
-        <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          className="input-field pr-10"
-          placeholder="گەڕان بە ناو، کۆد یان مۆبایل..."
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
-        />
-      </div>
+      <EmployeeAutocomplete
+        className="mb-4"
+        value={search}
+        employees={allEmployees}
+        onChange={onSearchChange}
+        onSelect={(emp) => onPickFromSearch(emp as Employee)}
+        placeholder="ناوی کارمەند بنووسە بۆ هەڵبژاردن..."
+      />
 
       <div className="space-y-2">
         {employees.map((e) => (
-          <div key={e.id} className="card flex items-start justify-between gap-3">
+          <div
+            key={e.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => openEdit(e)}
+            onKeyDown={(ev) => {
+              if (ev.key === "Enter" || ev.key === " ") openEdit(e);
+            }}
+            className="card flex w-full cursor-pointer items-start justify-between gap-3 text-right transition hover:border-brand-200 hover:shadow-md"
+          >
             <div>
               <p className="font-bold text-slate-900">{e.name}</p>
               <p className="mt-1 text-xs text-slate-500">
-                {[e.position?.name, e.department?.name, e.market?.name].filter(Boolean).join(" · ") || "هێشتا دابەش نەکراوە"}
+                {[e.position?.name, e.department?.name, e.market?.name].filter(Boolean).join(" · ") ||
+                  "هێشتا دابەش نەکراوە"}
               </p>
               <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-400">
                 {e.employeeCode && <span>کۆد: {e.employeeCode}</span>}
@@ -162,10 +201,24 @@ export default function EmployeesPage() {
               </div>
             </div>
             <div className="flex gap-1">
-              <button onClick={() => openEdit(e)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
+              <button
+                type="button"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  openEdit(e);
+                }}
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+              >
                 <Pencil size={16} />
               </button>
-              <button onClick={() => remove(e.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50">
+              <button
+                type="button"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  remove(e.id);
+                }}
+                className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+              >
                 <Trash2 size={16} />
               </button>
             </div>
@@ -176,70 +229,132 @@ export default function EmployeesPage() {
         )}
       </div>
 
-      <Modal open={open} title={editing ? "دەستکاری کارمەند" : "کارمەندی نوێ"} onClose={() => setOpen(false)}>
+      <Modal
+        open={open}
+        title={editing ? "زانیاری کارمەند" : "کارمەندی نوێ"}
+        onClose={() => {
+          setOpen(false);
+          setPickedHint("");
+        }}
+      >
         <div className="space-y-3">
-          <div>
-            <label className="label">ناو *</label>
-            <input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
+          {pickedHint && (
+            <div className="rounded-xl bg-brand-50 px-3 py-2 text-xs font-medium text-brand-800">
+              {pickedHint}
+            </div>
+          )}
+
+          <EmployeeAutocomplete
+            label="ناو *"
+            value={form.name}
+            employees={allEmployees}
+            excludeId={editing?.id}
+            onChange={(name) => {
+              setForm({ ...form, name });
+              setPickedHint("");
+            }}
+            onSelect={(emp) => fillFromEmployee(emp as Employee)}
+            placeholder="ناو بنووسە یان لە لیست هەڵبژێرە..."
+          />
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">کۆدی کارمەند</label>
-              <input className="input-field" value={form.employeeCode} onChange={(e) => setForm({ ...form, employeeCode: e.target.value })} />
+              <input
+                className="input-field"
+                value={form.employeeCode}
+                onChange={(e) => setForm({ ...form, employeeCode: e.target.value })}
+              />
             </div>
             <div>
               <label className="label">مۆبایل</label>
-              <input className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <input
+                className="input-field"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
             </div>
           </div>
           <div>
             <label className="label">ئیمەیڵ</label>
-            <input className="input-field" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <input
+              className="input-field"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
           </div>
           <div>
             <label className="label">مارکێت</label>
-            <select className="input-field" value={form.marketId} onChange={(e) => setForm({ ...form, marketId: e.target.value })}>
+            <select
+              className="input-field"
+              value={form.marketId}
+              onChange={(e) => setForm({ ...form, marketId: e.target.value })}
+            >
               <option value="">— هەڵبژێرە —</option>
               {markets.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
               ))}
             </select>
           </div>
           <div>
             <label className="label">بەشی ئیداری</label>
-            <select className="input-field" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
+            <select
+              className="input-field"
+              value={form.departmentId}
+              onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+            >
               <option value="">— هەڵبژێرە —</option>
               {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
               ))}
             </select>
           </div>
           <div>
             <label className="label">پۆست</label>
-            <select className="input-field" value={form.positionId} onChange={(e) => setForm({ ...form, positionId: e.target.value })}>
+            <select
+              className="input-field"
+              value={form.positionId}
+              onChange={(e) => setForm({ ...form, positionId: e.target.value })}
+            >
               <option value="">— هەڵبژێرە —</option>
               {positions.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
               ))}
             </select>
           </div>
           <div>
             <label className="label">سەرپەرشتیار</label>
-            <select className="input-field" value={form.managerId} onChange={(e) => setForm({ ...form, managerId: e.target.value })}>
+            <select
+              className="input-field"
+              value={form.managerId}
+              onChange={(e) => setForm({ ...form, managerId: e.target.value })}
+            >
               <option value="">— هەڵبژێرە —</option>
-              {employees
+              {allEmployees
                 .filter((e) => e.id !== editing?.id)
                 .map((e) => (
-                  <option key={e.id} value={e.id}>{e.name}</option>
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
                 ))}
             </select>
           </div>
           <div>
             <label className="label">تێبینی</label>
-            <textarea className="input-field min-h-[80px]" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <textarea
+              className="input-field min-h-[80px]"
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
           </div>
           <button onClick={save} disabled={saving || !form.name.trim()} className="btn-primary w-full">
-            {saving ? "پاشەکەوت..." : "پاشەکەوتکردن"}
+            {saving ? "پاشەکەوت..." : editing ? "نوێکردنەوەی زانیاری" : "پاشەکەوتکردن"}
           </button>
         </div>
       </Modal>
