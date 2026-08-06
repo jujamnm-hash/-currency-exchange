@@ -18,7 +18,9 @@ interface DashboardData {
     id: string;
     name: string;
     employeeCode?: string | null;
+    markets?: { name: string }[];
     market?: { name: string } | null;
+    marketNames?: string;
     position?: { name: string } | null;
     department?: { name: string } | null;
   }>;
@@ -125,7 +127,13 @@ export default function DashboardPage() {
               <div>
                 <p className="font-semibold text-slate-800">{e.name}</p>
                 <p className="text-xs text-slate-500">
-                  {[e.position?.name, e.market?.name, e.department?.name].filter(Boolean).join(" · ") || "—"}
+                  {[
+                    e.position?.name,
+                    e.marketNames || e.markets?.map((m) => m.name).join(" · ") || e.market?.name,
+                    e.department?.name,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
                 </p>
               </div>
               {e.employeeCode && (

@@ -10,9 +10,17 @@ export type EmployeeSuggestion = {
   email?: string | null;
   employeeCode?: string | null;
   market?: { name: string } | null;
+  markets?: { name: string }[];
+  marketNames?: string;
   department?: { name: string } | null;
   position?: { name: string } | null;
 };
+
+function marketsText(e: EmployeeSuggestion) {
+  if (e.marketNames) return e.marketNames;
+  if (e.markets?.length) return e.markets.map((m) => m.name).join(" · ");
+  return e.market?.name || "";
+}
 
 interface EmployeeAutocompleteProps {
   value: string;
@@ -53,7 +61,7 @@ export function EmployeeAutocomplete({
           e.phone?.includes(q) ||
           e.employeeCode?.toLowerCase().includes(q) ||
           e.position?.name?.toLowerCase().includes(q) ||
-          e.market?.name?.toLowerCase().includes(q)
+          marketsText(e).toLowerCase().includes(q)
       )
       .slice(0, 8);
   }, [employees, excludeId, value]);
@@ -138,7 +146,7 @@ export function EmployeeAutocomplete({
                   <span className="min-w-0 flex-1">
                     <span className="block font-bold text-slate-900">{emp.name}</span>
                     <span className="mt-0.5 block text-xs text-slate-500">
-                      {[emp.position?.name, emp.department?.name, emp.market?.name]
+                      {[emp.position?.name, emp.department?.name, marketsText(emp)]
                         .filter(Boolean)
                         .join(" · ") || "بێ وردەکاری"}
                     </span>

@@ -12,7 +12,9 @@ interface OrgNode {
   name: string;
   phone?: string | null;
   employeeCode?: string | null;
+  markets?: { name: string }[];
   market?: { name: string } | null;
+  marketNames?: string;
   department?: { name: string } | null;
   position?: { name: string; level?: number } | null;
   children: OrgNode[];
@@ -29,15 +31,22 @@ interface Department {
 type ViewMode = "employees" | "departments";
 
 function mapEmployeeTree(nodes: OrgNode[], depth = 0): ChartNode[] {
-  return nodes.map((n) => ({
-    id: n.id,
-    title: n.name,
-    subtitle: n.position?.name || "بێ پۆست",
-    meta: [n.department?.name, n.market?.name, n.employeeCode].filter(Boolean).join(" · "),
-    badge: typeof n.position?.level === "number" ? `L${n.position.level}` : undefined,
-    tone: depth === 0 ? "root" : n.children.length ? "mid" : "leaf",
-    children: mapEmployeeTree(n.children, depth + 1),
-  }));
+  return nodes.map((n) => {
+    const marketText =
+      n.marketNames ||
+      n.markets?.map((m) => m.name).join(" · ") ||
+      n.market?.name ||
+      "";
+    return {
+      id: n.id,
+      title: n.name,
+      subtitle: n.position?.name || "بێ پۆست",
+      meta: [n.department?.name, marketText, n.employeeCode].filter(Boolean).join(" · "),
+      badge: typeof n.position?.level === "number" ? `L${n.position.level}` : undefined,
+      tone: depth === 0 ? "root" : n.children.length ? "mid" : "leaf",
+      children: mapEmployeeTree(n.children, depth + 1),
+    };
+  });
 }
 
 function mapDepartmentTree(

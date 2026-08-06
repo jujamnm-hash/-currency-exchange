@@ -1,4 +1,5 @@
-const DB_KEY = "org_structure_db_v1";
+const DB_KEY = "org_structure_db_v2";
+const OLD_DB_KEY = "org_structure_db_v1";
 
 export interface Market {
   id: string;
@@ -37,7 +38,7 @@ export interface Employee {
   phone?: string;
   email?: string;
   employeeCode?: string;
-  marketId?: string | null;
+  marketIds: string[];
   departmentId?: string | null;
   positionId?: string | null;
   managerId?: string | null;
@@ -57,6 +58,30 @@ interface DB {
 
 function uid() {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function normalizeEmployee(raw: Record<string, unknown>): Employee {
+  const marketIds =
+    Array.isArray(raw.marketIds)
+      ? (raw.marketIds as string[])
+      : raw.marketId
+      ? [String(raw.marketId)]
+      : [];
+  return {
+    id: String(raw.id),
+    name: String(raw.name || ""),
+    phone: (raw.phone as string) || undefined,
+    email: (raw.email as string) || undefined,
+    employeeCode: (raw.employeeCode as string) || undefined,
+    marketIds,
+    departmentId: (raw.departmentId as string) || null,
+    positionId: (raw.positionId as string) || null,
+    managerId: (raw.managerId as string) || null,
+    hireDate: (raw.hireDate as string) || null,
+    notes: (raw.notes as string) || undefined,
+    isActive: raw.isActive !== false,
+    createdAt: String(raw.createdAt || new Date().toISOString()),
+  };
 }
 
 function defaultDB(): DB {
@@ -88,7 +113,7 @@ function defaultDB(): DB {
       name: "ئارام محەمەد",
       phone: "07501234567",
       employeeCode: "E001",
-      marketId: "m1",
+      marketIds: ["m1", "m2", "m3"],
       departmentId: "d1",
       positionId: "p1",
       managerId: null,
@@ -100,7 +125,7 @@ function defaultDB(): DB {
       name: "سارا ئەحمەد",
       phone: "07501234568",
       employeeCode: "E002",
-      marketId: "m1",
+      marketIds: ["m1", "m2"],
       departmentId: "d3",
       positionId: "p2",
       managerId: "e1",
@@ -112,7 +137,7 @@ function defaultDB(): DB {
       name: "هیوا عەلی",
       phone: "07501234569",
       employeeCode: "E003",
-      marketId: "m1",
+      marketIds: ["m1"],
       departmentId: "d3",
       positionId: "p3",
       managerId: "e2",
@@ -124,7 +149,7 @@ function defaultDB(): DB {
       name: "لانا کەریم",
       phone: "07501234570",
       employeeCode: "E004",
-      marketId: "m2",
+      marketIds: ["m2"],
       departmentId: "d3",
       positionId: "p4",
       managerId: "e2",
@@ -136,7 +161,7 @@ function defaultDB(): DB {
       name: "دیلان حسن",
       phone: "07501234571",
       employeeCode: "E005",
-      marketId: "m3",
+      marketIds: ["m3", "m1"],
       departmentId: "d4",
       positionId: "p5",
       managerId: "e1",
@@ -148,7 +173,7 @@ function defaultDB(): DB {
       name: "نۆر خان",
       phone: "07501234572",
       employeeCode: "E006",
-      marketId: "m1",
+      marketIds: ["m1"],
       departmentId: "d2",
       positionId: "p6",
       managerId: "e1",
@@ -172,13 +197,28 @@ function defaultDB(): DB {
 function load(): DB {
   if (typeof window === "undefined") return defaultDB();
   try {
-    const raw = localStorage.getItem(DB_KEY);
+    const raw = localStorage.getItem(DB_KEY) || localStorage.getItem(OLD_DB_KEY);
     if (!raw) {
       const db = defaultDB();
       localStorage.setItem(DB_KEY, JSON.stringify(db));
       return db;
     }
-    return JSON.parse(raw) as DB;
+    const parsed = JSON.parse(raw) as {
+      markets: Market[];
+      departments: Department[];
+      positions: Position[];
+      employees: Array<Record<string, unknown>>;
+      settings: Record<string, string>;
+    };
+    const db: DB = {
+      markets: parsed.markets || [],
+      departments: parsed.departments || [],
+      positions: parsed.positions || [],
+      settings: parsed.settings || {},
+      employees: (parsed.employees || []).map((e) => normalizeEmployee(e)),
+    };
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    return db;
   } catch {
     return defaultDB();
   }
@@ -195,9 +235,12 @@ export function useLocalMode() {
 }
 
 function enrichEmployee(e: Employee, db: DB) {
+  const markets = db.markets.filter((m) => e.marketIds.includes(m.id));
   return {
     ...e,
-    market: db.markets.find((m) => m.id === e.marketId) ?? null,
+    markets,
+    market: markets[0] ?? null,
+    marketNames: markets.map((m) => m.name).join(" · "),
     department: db.departments.find((d) => d.id === e.departmentId) ?? null,
     position: db.positions.find((p) => p.id === e.positionId) ?? null,
     manager: db.employees.find((m) => m.id === e.managerId)
@@ -213,7 +256,7 @@ export const localDb = {
     const byMarket = db.markets.map((m) => ({
       id: m.id,
       name: m.name,
-      count: activeEmployees.filter((e) => e.marketId === m.id).length,
+      count: activeEmployees.filter((e) => e.marketIds.includes(m.id)).length,
     }));
     const byDepartment = db.departments.map((d) => ({
       id: d.id,
@@ -267,7 +310,10 @@ export const localDb = {
   deleteMarket(id: string) {
     const db = load();
     db.markets = db.markets.filter((m) => m.id !== id);
-    db.employees = db.employees.map((e) => (e.marketId === id ? { ...e, marketId: null } : e));
+    db.employees = db.employees.map((e) => ({
+      ...e,
+      marketIds: e.marketIds.filter((mid) => mid !== id),
+    }));
     save(db);
     return { ok: true };
   },
@@ -373,12 +419,18 @@ export const localDb = {
     let list = db.employees.slice();
     if (search) {
       const q = search.trim().toLowerCase();
-      list = list.filter(
-        (e) =>
+      list = list.filter((e) => {
+        const marketNames = db.markets
+          .filter((m) => e.marketIds.includes(m.id))
+          .map((m) => m.name.toLowerCase())
+          .join(" ");
+        return (
           e.name.toLowerCase().includes(q) ||
           e.phone?.includes(q) ||
-          e.employeeCode?.toLowerCase().includes(q)
-      );
+          e.employeeCode?.toLowerCase().includes(q) ||
+          marketNames.includes(q)
+        );
+      });
     }
     return list
       .sort((a, b) => a.name.localeCompare(b.name, "ku"))
@@ -390,6 +442,7 @@ export const localDb = {
     phone?: string;
     email?: string;
     employeeCode?: string;
+    marketIds?: string[];
     marketId?: string | null;
     departmentId?: string | null;
     positionId?: string | null;
@@ -397,13 +450,15 @@ export const localDb = {
     notes?: string;
   }) {
     const db = load();
+    const marketIds =
+      data.marketIds ?? (data.marketId ? [data.marketId] : []);
     const employee: Employee = {
       id: uid(),
       name: data.name,
       phone: data.phone,
       email: data.email,
       employeeCode: data.employeeCode,
-      marketId: data.marketId ?? null,
+      marketIds,
       departmentId: data.departmentId ?? null,
       positionId: data.positionId ?? null,
       managerId: data.managerId ?? null,
@@ -416,11 +471,20 @@ export const localDb = {
     return enrichEmployee(employee, db);
   },
 
-  updateEmployee(id: string, data: Partial<Employee>) {
+  updateEmployee(id: string, data: Partial<Employee> & { marketId?: string | null }) {
     const db = load();
     const idx = db.employees.findIndex((e) => e.id === id);
     if (idx < 0) throw new Error("کارمەند نەدۆزرایەوە");
-    db.employees[idx] = { ...db.employees[idx], ...data, id };
+    const { marketId, ...rest } = data;
+    const next: Employee = {
+      ...db.employees[idx],
+      ...rest,
+      id,
+      marketIds:
+        rest.marketIds ??
+        (marketId !== undefined ? (marketId ? [marketId] : []) : db.employees[idx].marketIds),
+    };
+    db.employees[idx] = next;
     save(db);
     return enrichEmployee(db.employees[idx], db);
   },

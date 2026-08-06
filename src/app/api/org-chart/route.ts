@@ -6,7 +6,9 @@ type TreeNode = {
   name: string;
   phone?: string | null;
   employeeCode?: string | null;
+  markets: { id: string; name: string }[];
   market: { id: string; name: string } | null;
+  marketNames: string;
   department: { id: string; name: string } | null;
   position: { id: string; name: string; level: number } | null;
   managerId?: string | null;
@@ -18,7 +20,7 @@ export async function GET() {
     const [employees, departments, markets] = await Promise.all([
       prisma.employee.findMany({
         where: { isActive: true },
-        include: { market: true, department: true, position: true },
+        include: { markets: true, department: true, position: true },
         orderBy: { name: "asc" },
       }),
       prisma.department.findMany({ orderBy: { sortOrder: "asc" } }),
@@ -34,7 +36,9 @@ export async function GET() {
         name: node.name,
         phone: node.phone,
         employeeCode: node.employeeCode,
-        market: node.market,
+        markets: node.markets,
+        market: node.markets[0] ?? null,
+        marketNames: node.markets.map((m) => m.name).join(" · "),
         department: node.department,
         position: node.position,
         managerId: node.managerId,

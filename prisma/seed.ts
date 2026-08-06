@@ -51,7 +51,7 @@ async function main() {
       employeeCode: "E001",
       departmentId: management.id,
       positionId: positions[0].id,
-      marketId: markets[0].id,
+      markets: { connect: markets.map((m) => ({ id: m.id })) },
     },
   });
 
@@ -62,50 +62,54 @@ async function main() {
       employeeCode: "E002",
       departmentId: sales.id,
       positionId: positions[1].id,
-      marketId: markets[0].id,
       managerId: ceo.id,
+      markets: { connect: [{ id: markets[0].id }, { id: markets[1].id }] },
     },
   });
 
-  await prisma.employee.createMany({
-    data: [
-      {
-        name: "هیوا عەلی",
-        phone: "07501234569",
-        employeeCode: "E003",
-        departmentId: sales.id,
-        positionId: positions[2].id,
-        marketId: markets[0].id,
-        managerId: mgr1.id,
-      },
-      {
-        name: "لانا کەریم",
-        phone: "07501234570",
-        employeeCode: "E004",
-        departmentId: sales.id,
-        positionId: positions[3].id,
-        marketId: markets[1].id,
-        managerId: mgr1.id,
-      },
-      {
-        name: "دیلان حسن",
-        phone: "07501234571",
-        employeeCode: "E005",
-        departmentId: ops.id,
-        positionId: positions[4].id,
-        marketId: markets[2].id,
-        managerId: ceo.id,
-      },
-      {
-        name: "نۆر خان",
-        phone: "07501234572",
-        employeeCode: "E006",
-        departmentId: hr.id,
-        positionId: positions[5].id,
-        marketId: markets[0].id,
-        managerId: ceo.id,
-      },
-    ],
+  await prisma.employee.create({
+    data: {
+      name: "هیوا عەلی",
+      phone: "07501234569",
+      employeeCode: "E003",
+      departmentId: sales.id,
+      positionId: positions[2].id,
+      managerId: mgr1.id,
+      markets: { connect: [{ id: markets[0].id }] },
+    },
+  });
+  await prisma.employee.create({
+    data: {
+      name: "لانا کەریم",
+      phone: "07501234570",
+      employeeCode: "E004",
+      departmentId: sales.id,
+      positionId: positions[3].id,
+      managerId: mgr1.id,
+      markets: { connect: [{ id: markets[1].id }] },
+    },
+  });
+  await prisma.employee.create({
+    data: {
+      name: "دیلان حسن",
+      phone: "07501234571",
+      employeeCode: "E005",
+      departmentId: ops.id,
+      positionId: positions[4].id,
+      managerId: ceo.id,
+      markets: { connect: [{ id: markets[2].id }, { id: markets[0].id }] },
+    },
+  });
+  await prisma.employee.create({
+    data: {
+      name: "نۆر خان",
+      phone: "07501234572",
+      employeeCode: "E006",
+      departmentId: hr.id,
+      positionId: positions[5].id,
+      managerId: ceo.id,
+      markets: { connect: [{ id: markets[0].id }] },
+    },
   });
 
   console.log("Seed completed: markets, departments, positions, employees");
