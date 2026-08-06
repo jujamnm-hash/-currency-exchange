@@ -65,9 +65,9 @@
 .org-chart ul {
   display: flex;
   justify-content: center;
-  padding-top: 1.25rem;
+  padding-top: 2rem;
   position: relative;
-  transition: all 0.3s;
+  transition: all 0.35s ease;
 }
 
 .org-chart-root {
@@ -78,10 +78,9 @@
   list-style: none;
   text-align: center;
   position: relative;
-  padding: 1.25rem 0.6rem 0;
+  padding: 2rem 0.75rem 0;
 }
 
-/* Vertical line from parent down */
 .org-chart li::before,
 .org-chart li::after {
   content: "";
@@ -90,7 +89,7 @@
   right: 50%;
   border-top: 2px solid #5eead4;
   width: 50%;
-  height: 1.25rem;
+  height: 2rem;
 }
 
 .org-chart li::after {
@@ -99,7 +98,6 @@
   border-left: 2px solid #5eead4;
 }
 
-/* Remove connectors for single child / edges */
 .org-chart li:only-child::before,
 .org-chart li:only-child::after {
   display: none;
@@ -116,36 +114,69 @@
 
 .org-chart li:last-child::before {
   border-right: 2px solid #5eead4;
-  border-radius: 0 0.35rem 0 0;
+  border-radius: 0 0.5rem 0 0;
 }
 
 .org-chart li:first-child::after {
-  border-radius: 0.35rem 0 0 0;
+  border-radius: 0.5rem 0 0 0;
 }
 
-/* Stem from box down to children */
 .org-chart ul::before {
   content: "";
   position: absolute;
   top: 0;
   left: 50%;
-  border-left: 2px solid #5eead4;
+  border-left: 2px solid #14b8a6;
   width: 0;
-  height: 1.25rem;
+  height: 2rem;
 }
 
-.org-chart-root > li > ul::before {
-  height: 1.25rem;
+.org-pro-canvas {
+  background:
+    radial-gradient(900px 420px at 50% -10%, rgba(13, 148, 136, 0.12), transparent 55%),
+    linear-gradient(180deg, #f7fbfa 0%, #eef5f3 48%, #e8f1ef 100%);
+}
+
+.org-pro-grid {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(15, 118, 110, 0.12) 1px, transparent 0);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.35));
+}
+
+.org-pro-chart .org-pro-node {
+  animation: orgRise 0.45s ease both;
+}
+
+@keyframes orgRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 640px) {
-  .org-chart .org-node {
-    width: 140px;
-    padding: 0.65rem;
+  .org-chart li {
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
   }
 
-  .org-chart li {
-    padding-left: 0.35rem;
-    padding-right: 0.35rem;
+  .org-pro-node {
+    width: 160px !important;
   }
 }
