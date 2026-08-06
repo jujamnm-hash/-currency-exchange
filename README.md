@@ -11,7 +11,26 @@
 - **نەخشەی ڕێکخستن**: بینینی هەیکەلی سەرپەرشتیاری
 - **داشبۆرد**: پوختەی ژمارەی کارمەند بەپێی مارکێت و بەش
 
-## بەکارهێنان
+## دامەزراندن لەسەر Vercel
+
+### خێراترین ڕێگا (یەک کلیک)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjujamnm-hash%2F-currency-exchange&project-name=org-structure&framework=nextjs)
+
+1. کلیک لە دوگمەکە بکە
+2. حسابی Vercel / GitHub هەڵبژێرە
+3. **Deploy** بکە — پێویست بە داتابەیس ناکات
+
+### یان لە Vercel Dashboard
+
+1. بڕۆ بۆ [vercel.com/new](https://vercel.com/new)
+2. Repositoryی `-currency-exchange` هەڵبژێرە
+3. Build Command: `npm run vercel-build`
+4. Deploy
+
+دوای دامەزراندن لینکێکی وەک `https://org-structure.vercel.app` دەستت دەکەوێت.
+
+## بەکارهێنان لە Local
 
 ```bash
 npm install
