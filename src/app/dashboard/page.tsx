@@ -1,31 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageLayout } from "@/components/PageLayout";
 import { StatCard } from "@/components/StatCard";
-import { OrderCard } from "@/components/OrderCard";
-import { formatIQD } from "@/lib/utils";
-import { Car, Users, Clock, DollarSign, Calendar, TrendingUp } from "lucide-react";
-import Link from "next/link";
 import { api } from "@/lib/api-client";
+import { Users, Store, Network, Briefcase } from "lucide-react";
 
 interface DashboardData {
-  todayOrders: number;
-  activeQueue: number;
-  todayRevenue: number;
-  totalCustomers: number;
-  todayAppointments: number;
-  recentOrders: Array<{
+  totalEmployees: number;
+  totalMarkets: number;
+  totalDepartments: number;
+  totalPositions: number;
+  byMarket: { id: string; name: string; count: number }[];
+  byDepartment: { id: string; name: string; count: number }[];
+  recentEmployees: Array<{
     id: string;
-    orderNumber: string;
-    plateNumber: string;
-    vehicleType: string;
-    customerName?: string | null;
-    status: string;
-    total: number;
-    queuePosition?: number | null;
-    createdAt: string;
-    items?: { service: { nameKu: string } }[];
+    name: string;
+    employeeCode?: string | null;
+    market?: { name: string } | null;
+    position?: { name: string } | null;
+    department?: { name: string } | null;
   }>;
 }
 
@@ -34,18 +29,15 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.dashboard()
-      .then(setData)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    api.dashboard().then(setData).catch(console.error).finally(() => setLoading(false));
   }, []);
 
   if (loading) {
     return (
       <PageLayout title="داشبۆرد" subtitle="بارکردن...">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="card h-24 animate-pulse bg-gray-100" />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="card h-24 animate-pulse bg-slate-100" />
           ))}
         </div>
       </PageLayout>
@@ -55,100 +47,94 @@ export default function DashboardPage() {
   return (
     <PageLayout
       title="داشبۆرد"
-      subtitle="بەخێربێیت بۆ غەسلی هەولێر"
+      subtitle="پوختەی هەیکەلی ئیداری و کارمەندان"
       action={
-        <Link href="/new-order" className="btn-primary hidden md:inline-flex">
-          + داواکاری نوێ
+        <Link href="/employees" className="btn-primary hidden md:inline-flex">
+          + کارمەندی نوێ
         </Link>
       }
     >
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard title="کارمەندان" value={data?.totalEmployees ?? 0} icon={<Users size={16} />} />
         <StatCard
-          title="داواکاری ئەمڕۆ"
-          value={data?.todayOrders ?? 0}
-          icon={<Car size={16} />}
+          title="مارکێتەکان"
+          value={data?.totalMarkets ?? 0}
+          icon={<Store size={16} />}
+          color="bg-amber-50 text-amber-700"
         />
         <StatCard
-          title="لە ڕیزدا"
-          value={data?.activeQueue ?? 0}
-          icon={<Clock size={16} />}
-          color="bg-yellow-50 text-yellow-600"
+          title="بەشەکان"
+          value={data?.totalDepartments ?? 0}
+          icon={<Network size={16} />}
+          color="bg-sky-50 text-sky-700"
         />
         <StatCard
-          title="داهاتی ئەمڕۆ"
-          value={formatIQD(data?.todayRevenue ?? 0)}
-          icon={<DollarSign size={16} />}
-          color="bg-green-50 text-green-600"
-        />
-        <StatCard
-          title="کڕیارەکان"
-          value={data?.totalCustomers ?? 0}
-          icon={<Users size={16} />}
-          color="bg-purple-50 text-purple-600"
-        />
-        <StatCard
-          title="کاتەکانی ئەمڕۆ"
-          value={data?.todayAppointments ?? 0}
-          icon={<Calendar size={16} />}
-          color="bg-cyan-50 text-cyan-600"
-        />
-        <StatCard
-          title="کارایی"
-          value="١٠٠٪"
-          subtitle="سیستەم چالاکە"
-          icon={<TrendingUp size={16} />}
-          color="bg-brand-50 text-brand-600"
+          title="پۆستەکان"
+          value={data?.totalPositions ?? 0}
+          icon={<Briefcase size={16} />}
+          color="bg-rose-50 text-rose-700"
         />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <section className="card">
+          <h3 className="mb-3 font-bold text-slate-800">دابەشکردنی کارمەند بەپێی مارکێت</h3>
+          <div className="space-y-2">
+            {(data?.byMarket ?? []).map((m) => (
+              <div key={m.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                <span className="text-sm text-slate-700">{m.name}</span>
+                <span className="rounded-lg bg-brand-100 px-2 py-0.5 text-xs font-bold text-brand-800">
+                  {m.count}
+                </span>
+              </div>
+            ))}
+            {!data?.byMarket?.length && (
+              <p className="text-sm text-slate-400">هیچ مارکێتێک نییە</p>
+            )}
+          </div>
+        </section>
+
+        <section className="card">
+          <h3 className="mb-3 font-bold text-slate-800">دابەشکردنی کارمەند بەپێی بەش</h3>
+          <div className="space-y-2">
+            {(data?.byDepartment ?? []).map((d) => (
+              <div key={d.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                <span className="text-sm text-slate-700">{d.name}</span>
+                <span className="rounded-lg bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-800">
+                  {d.count}
+                </span>
+              </div>
+            ))}
+            {!data?.byDepartment?.length && (
+              <p className="text-sm text-slate-400">هیچ بەشێک نییە</p>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <section className="card mt-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-bold text-gray-900">دوایین داواکارییەکان</h3>
-          <Link href="/queue" className="text-sm text-brand-600">
-            بینینی هەموو
+          <h3 className="font-bold text-slate-800">دوایین کارمەندان</h3>
+          <Link href="/employees" className="text-sm font-medium text-brand-700">
+            هەموو
           </Link>
         </div>
-        <div className="flex flex-col gap-3">
-          {data?.recentOrders?.length === 0 && (
-            <div className="card text-center text-gray-500">
-              <p>هیچ داواکارییەک نییە</p>
-              <Link href="/new-order" className="btn-primary mt-3 inline-flex">
-                داواکاری نوێ زیاد بکە
-              </Link>
+        <div className="space-y-2">
+          {(data?.recentEmployees ?? []).map((e) => (
+            <div key={e.id} className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5">
+              <div>
+                <p className="font-semibold text-slate-800">{e.name}</p>
+                <p className="text-xs text-slate-500">
+                  {[e.position?.name, e.market?.name, e.department?.name].filter(Boolean).join(" · ") || "—"}
+                </p>
+              </div>
+              {e.employeeCode && (
+                <span className="text-xs text-slate-400">{e.employeeCode}</span>
+              )}
             </div>
-          )}
-          {data?.recentOrders?.map((order) => (
-            <OrderCard key={order.id} order={order} showActions={false} />
           ))}
         </div>
-      </div>
-
-      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Link href="/new-order" className="card flex flex-col items-center gap-2 py-6 text-center transition hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-brand-600">
-            <Car size={24} />
-          </div>
-          <span className="text-sm font-medium">داواکاری نوێ</span>
-        </Link>
-        <Link href="/queue" className="card flex flex-col items-center gap-2 py-6 text-center transition hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
-            <Clock size={24} />
-          </div>
-          <span className="text-sm font-medium">ڕیزی چاوەڕوانی</span>
-        </Link>
-        <Link href="/appointments" className="card flex flex-col items-center gap-2 py-6 text-center transition hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100 text-cyan-600">
-            <Calendar size={24} />
-          </div>
-          <span className="text-sm font-medium">کات دابنێ</span>
-        </Link>
-        <Link href="/reports" className="card flex flex-col items-center gap-2 py-6 text-center transition hover:shadow-md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
-            <TrendingUp size={24} />
-          </div>
-          <span className="text-sm font-medium">ڕاپۆرت</span>
-        </Link>
-      </div>
+      </section>
     </PageLayout>
   );
 }

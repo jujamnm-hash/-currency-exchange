@@ -11,13 +11,13 @@ const noto = Noto_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "غەسلی هەولێر | سیستەمی بەڕێوەبردنی غەسلی سەیارە",
-  description: "سیستەمی تەواوی بەڕێوەبردنی غەسلی سەیارە - غەسلی هەولێر",
+  title: "هەیکەلی ئیداری | سیستەمی ڕێکخستنی کارمەندان",
+  description: "سیستەمی بەڕێوەبردنی هەیکەلی ئیداری، کارمەند، پۆست و مارکێت",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "غەسلی هەولێر",
+    title: "هەیکەلی ئیداری",
   },
   icons: {
     icon: "/icon.svg",
@@ -30,13 +30,13 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#1d4ed8",
+  themeColor: "#0f766e",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ku" dir="rtl">
-      <body className={`${noto.variable} font-sans bg-gray-50 text-gray-900 antialiased`}>
+      <body className={`${noto.variable} font-sans text-slate-900 antialiased`}>
         <div className="flex min-h-screen flex-col">
           <Header />
           <main className="flex-1 pb-20 md:pb-6">{children}</main>

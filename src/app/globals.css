@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,24 +15,26 @@
 
   body {
     overscroll-behavior: none;
+    font-family: "IBM Plex Sans Arabic", var(--font-noto), system-ui, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 100% -10%, rgba(13, 148, 136, 0.12), transparent 55%),
+      radial-gradient(900px 500px at -10% 20%, rgba(15, 118, 110, 0.08), transparent 50%),
+      linear-gradient(180deg, #f4f7f6 0%, #eef3f1 100%);
+    min-height: 100vh;
   }
 }
 
 @layer components {
   .card {
-    @apply rounded-2xl bg-white p-4 shadow-sm border border-gray-100;
+    @apply rounded-2xl bg-white/90 p-4 shadow-sm border border-slate-100 backdrop-blur-sm;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition active:scale-95 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition active:scale-95 hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 transition active:scale-95 hover:bg-gray-200;
-  }
-
-  .btn-success {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition active:scale-95 hover:bg-green-700;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition active:scale-95 hover:bg-slate-200;
   }
 
   .btn-danger {
@@ -38,19 +42,15 @@
   }
 
   .input-field {
-    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
   }
 
   .label {
-    @apply mb-1.5 block text-sm font-medium text-gray-700;
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
   }
 
   .stat-card {
     @apply card flex flex-col gap-1;
-  }
-
-  .status-badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
 }
 

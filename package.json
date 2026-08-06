@@ -1,7 +1,7 @@
 {
-  "name": "ghassle-hawler",
+  "name": "org-structure",
   "version": "1.0.0",
-  "description": "سیستەمی بەڕێوەبردنی غەسلی سەیارە - غەسلی هەولێر",
+  "description": "سیستەمی هەیکەلی ئیداری و ڕێکخستنی کارمەندان",
   "private": true,
   "scripts": {
     "dev": "next dev",

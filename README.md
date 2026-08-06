@@ -1,156 +1,50 @@
-# 🚗 غەسلی هەولێر | Ghassle Hawler Car Wash System
+# هەیکەلی ئیداری | سیستەمی ڕێکخستنی کارمەندان
 
-سیستەمێکی تەواوی بەڕێوەبردنی غەسلی سەیارە بە ستانداردی جیهانی، گونجاو بۆ مۆبایل و ئامادە بۆ دامەزراندن لەسەر Vercel.
+سیستەمێک بۆ دروستکردن و ڕێکخستنی کارمەندان، هەیکەلی ئیداری، پۆستەکان و مارکێتەکان.
 
-## ✨ تایبەتمەندییەکان
+## تایبەتمەندییەکان
 
-### بەڕێوەبردنی داواکاری
-- زیادکردنی داواکاری نوێ بە خێرایی
-- ڕیزی چاوەڕوانی بە شوێنکەوتنی قۆناغەکان
-- ٨ قۆناغی ستاندارد: چاوەڕوانی → تۆمار → غەسڵ → وشککردن → وردەکاری → پشکنین → ئامادە → تەواو
+- **کارمەندان**: زیادکردن، دەستکاری، گەڕان، سڕینەوە
+- **مارکێتەکان**: ناوی مارکێت زیاد بکە و کارمەندیان دابەش بکە
+- **هەیکەلی ئیداری**: بەش و ژێربەشی ئیداری بە شێوەی دار دروست بکە
+- **پۆستەکان**: پۆست و پلەکان پێناسە بکە
+- **نەخشەی ڕێکخستن**: بینینی هەیکەلی سەرپەرشتیاری
+- **داشبۆرد**: پوختەی ژمارەی کارمەند بەپێی مارکێت و بەش
 
-### خزمەتگوزارییەکان
-- ٨ جۆری خزمەتگوزاری (سادە، تەواو، پڕیمیەم، ناوەوە، واکس، ئەنجام، ژێرەوە، پەنجەرە)
-- ٥ زیادەی داخڵ (بۆنخۆش، تایەر، داشبۆرد، ئارۆما، قاپ)
-- نرخی جیاواز بەپێی جۆری سەیارە (سەدان، SUV، بارهەڵگر، ڤان، ماتۆرسکیل، لوکس)
-
-### کڕیار و ئەندامێتی
-- تۆمارکردنی کڕیار و سەیارەکان
-- سیستەمی خاڵی دڵسۆزی
-- پلانی ئەندامێتی مانگانە
-
-### کات و ڕاپۆرت
-- بەڕێوەبردنی کاتی پێشوەختە
-- ڕاپۆرتی داهات (ڕۆژانە، هەفتانە، مانگانە)
-- شیکردنەوەی خزمەتگوزاری و جۆری سەیارە
-
-### مۆبایل و PWA
-- دیزاینی Mobile-First
-- دەتوانیت وەک ئەپ لە Home Screen دابنێیت
-- ناوچەی خوارەوەی گەڕان بۆ مۆبایل
-
----
-
-## 🌐 لینکی ئەپ (ئامادەیە ئێستا!)
-
-### GitHub Pages — کار دەکات لە مۆبایل:
-
-**https://jujamnm-hash.github.io/-currency-exchange/dashboard/**
-
-- داتا لەسەر مۆبایلەکەت پارێزراو دەبێت (localStorage)
-- وەک ئەپ: **Add to Home Screen**
-
-### Vercel (ئەگەر داتابەیسی سێرڤەر دەتەوێت):
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjujamnm-hash%2F-currency-exchange&project-name=ghassle-hawler&env=DATABASE_URL&envDescription=PostgreSQL%20connection%20string%20from%20Vercel%20Postgres%20or%20Neon)
-
----
-
-## 🚀 دامەزراندن لەسەر Vercel (وردەکاری)
-
-### هەنگاو ١: داتابەیس دروست بکە
-
-لە [Vercel Dashboard](https://vercel.com) → Storage → Create Database → **Postgres**
-
-یان لە [Neon](https://neon.tech) / [Supabase](https://supabase.com) داتابەیسێکی بەخۆڕایی دروست بکە.
-
-### هەنگاو ٢: پڕۆژەکە بەرز بکەرەوە
-
-1. ئەم repository ـە بەرز بکەرەوە بۆ GitHub
-2. بڕۆ بۆ [vercel.com/new](https://vercel.com/new)
-3. Repository هەڵبژێرە
-4. لە **Environment Variables** زیاد بکە:
-   ```
-   DATABASE_URL=postgresql://...
-   ```
-5. کلیک لە **Deploy** بکە
-
-### هەنگاو ٣: داتابەیس ڕێکبخە
-
-دوای دامەزراندن، لە Vercel Terminal یان لە local:
+## بەکارهێنان
 
 ```bash
-npx prisma db push
-npx tsx prisma/seed.ts
-```
-
----
-
-## 💻 گەشەپێدان لە Local
-
-```bash
-# دامەزراندنی پاکێجەکان
 npm install
-
-# ڕێکخستنی .env
-cp .env.example .env
-# DATABASE_URL بنووسە
-
-# داتابەیس
-npm run db:setup
-
-# دەستپێکردن
 npm run dev
 ```
 
 بڕۆ بۆ: http://localhost:3000
 
----
+داتاکان لەسەر ئامێرەکەت پاشەکەوت دەبن (localStorage) — پێویست بە داتابەیس ناکات بۆ کارکردنی ئاسایی.
 
-## 📱 بەکارهێنان وەک ئەپ لە مۆبایل
+## داتابەیس (ئارەزوومەندانە — Vercel)
 
-1. لینکی Vercel لە وێبگەڕی مۆبایل بکەرەوە
-2. **iOS**: Share → Add to Home Screen
-3. **Android**: Menu → Add to Home Screen / Install App
+ئەگەر PostgreSQL دەتەوێت:
 
----
-
-## 🗂️ پێکهاتەی پڕۆژە
-
-```
-ghassle-hawler/
-├── prisma/
-│   ├── schema.prisma    # مۆدێلی داتابەیس
-│   └── seed.ts          # داتای سەرەتایی
-├── public/
-│   ├── manifest.json    # PWA
-│   └── icon.svg
-├── src/
-│   ├── app/
-│   │   ├── api/         # API Routes
-│   │   ├── dashboard/   # داشبۆرد
-│   │   ├── queue/       # ڕیز
-│   │   ├── new-order/   # داواکاری نوێ
-│   │   ├── customers/   # کڕیارەکان
-│   │   ├── appointments/# کاتەکان
-│   │   ├── services/    # خزمەتگوزارییەکان
-│   │   ├── reports/     # ڕاپۆرت
-│   │   └── settings/    # ڕێکخستن
-│   ├── components/
-│   └── lib/
-└── vercel.json
+```bash
+cp .env.example .env
+# DATABASE_URL بنووسە
+npm run db:setup
 ```
 
----
+## پێکهاتە
 
-## 🔧 تەکنەلۆژیا
+```
+src/app/
+  dashboard/     # داشبۆرد
+  employees/     # کارمەندان
+  markets/       # مارکێتەکان
+  structure/     # هەیکەلی ئیداری
+  positions/     # پۆستەکان
+  org-chart/     # نەخشەی ڕێکخستن
+  settings/      # ڕێکخستنەکان
+```
 
-- **Next.js 15** - React Framework
-- **Prisma** - ORM بۆ داتابەیس
-- **PostgreSQL** - داتابەیس
-- **Tailwind CSS** - ستایل
-- **TypeScript** - جۆری پارێزراو
-- **PWA** - ئەپ لە مۆبایل
+## تەکنەلۆژیا
 
----
-
-## 📞 زانیاری دوکان (سەرەتایی)
-
-- **ناو:** غەسلی هەولێر
-- **ناونیشان:** هەولێر، کوردستان
-- **کاتەکانی کار:** 08:00 - 22:00
-- **دراو:** دیناری عێراقی (IQD)
-
----
-
-دروستکراوە بە ❤️ بۆ غەسلی هەولێر
+- Next.js 15 · React 19 · Tailwind · Prisma · TypeScript · PWA · RTL Kurdish

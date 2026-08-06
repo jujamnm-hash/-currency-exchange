@@ -1,14 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" rx="96" fill="#1d4ed8"/>
-  <path d="M256 80c-60 0-108 48-108 108v20c-30 10-52 38-52 72v100c0 16 12 28 28 28h264c16 0 28-12 28-28V280c0-34-22-62-52-72v-20c0-60-48-108-108-108z" fill="#ffffff" opacity="0.9"/>
-  <path d="M180 200h152c8 0 14 6 14 14v20c0 8-6 14-14 14H180c-8 0-14-6-14-14v-20c0-8 6-14 14-14z" fill="#1d4ed8"/>
-  <circle cx="180" cy="380" r="36" fill="#ffffff"/>
-  <circle cx="332" cy="380" r="36" fill="#ffffff"/>
-  <circle cx="180" cy="380" r="18" fill="#1d4ed8"/>
-  <circle cx="332" cy="380" r="18" fill="#1d4ed8"/>
-  <path d="M200 140c0-8 6-14 14-14h84c8 0 14 6 14 14v20H200v-20z" fill="#60a5fa"/>
-  <path d="M120 160c20-30 50-50 136-50s116 20 136 50" stroke="#22d3ee" stroke-width="8" stroke-linecap="round" fill="none"/>
-  <circle cx="380" cy="120" r="12" fill="#22d3ee"/>
-  <circle cx="400" cy="140" r="8" fill="#22d3ee" opacity="0.7"/>
-  <circle cx="360" cy="100" r="6" fill="#22d3ee" opacity="0.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <rect width="128" height="128" rx="28" fill="#0f766e"/>
+  <rect x="28" y="72" width="22" height="28" rx="4" fill="#ccfbf1"/>
+  <rect x="53" y="48" width="22" height="52" rx="4" fill="#99f6e4"/>
+  <rect x="78" y="60" width="22" height="40" rx="4" fill="#5eead4"/>
+  <circle cx="64" cy="34" r="12" fill="#f0fdfa"/>
 </svg>

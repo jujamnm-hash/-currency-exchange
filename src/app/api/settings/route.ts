@@ -1,27 +1,36 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-export const dynamic = "force-static";
 
 export async function GET() {
   try {
-    const [settings, employees, inventory, membershipPlans] = await Promise.all([
-      prisma.settings.findMany(),
-      prisma.employee.findMany({ where: { isActive: true } }),
-      prisma.inventoryItem.findMany(),
-      prisma.membershipPlan.findMany({ where: { isActive: true } }),
-    ]);
-
-    const settingsMap = Object.fromEntries(settings.map((s) => [s.key, s.value]));
-
-    return NextResponse.json({
-      settings: settingsMap,
-      employees,
-      inventory,
-      membershipPlans,
+    const rows = await prisma.settings.findMany();
+    const settings: Record<string, string> = {};
+    rows.forEach((r) => {
+      settings[r.key] = r.value;
     });
-  } catch (error) {
-    console.error("Settings GET error:", error);
-    return NextResponse.json({ error: "هەڵە لە وەرگرتنی ڕێکخستنەکان" }, { status: 500 });
+    return NextResponse.json(settings);
+  } catch {
+    return NextResponse.json({ error: "database unavailable" }, { status: 503 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    for (const [key, value] of Object.entries(body)) {
+      await prisma.settings.upsert({
+        where: { key },
+        update: { value: String(value) },
+        create: { id: `s_${key}`, key, value: String(value) },
+      });
+    }
+    const rows = await prisma.settings.findMany();
+    const settings: Record<string, string> = {};
+    rows.forEach((r) => {
+      settings[r.key] = r.value;
+    });
+    return NextResponse.json(settings);
+  } catch {
+    return NextResponse.json({ error: "failed" }, { status: 500 });
   }
 }

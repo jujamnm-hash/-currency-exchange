@@ -1,67 +1,43 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { startOfDay, endOfDay } from "date-fns";
-
-export const dynamic = "force-static";
 
 export async function GET() {
   try {
-    const today = new Date();
-    const dayStart = startOfDay(today);
-    const dayEnd = endOfDay(today);
-
-    const [
-      todayOrders,
-      activeQueue,
-      todayRevenue,
-      totalCustomers,
-      todayAppointments,
-      recentOrders,
-    ] = await Promise.all([
-      prisma.order.count({
-        where: { createdAt: { gte: dayStart, lte: dayEnd } },
-      }),
-      prisma.order.count({
-        where: {
-          status: { notIn: ["COMPLETED", "CANCELLED"] },
-        },
-      }),
-      prisma.order.aggregate({
-        where: {
-          createdAt: { gte: dayStart, lte: dayEnd },
-          status: "COMPLETED",
-        },
-        _sum: { total: true },
-      }),
-      prisma.customer.count(),
-      prisma.appointment.count({
-        where: {
-          scheduledAt: { gte: dayStart, lte: dayEnd },
-          status: { in: ["SCHEDULED", "CONFIRMED"] },
-        },
-      }),
-      prisma.order.findMany({
-        take: 5,
+    const [employees, markets, departments, positions, recentEmployees] = await Promise.all([
+      prisma.employee.count({ where: { isActive: true } }),
+      prisma.market.count({ where: { isActive: true } }),
+      prisma.department.count({ where: { isActive: true } }),
+      prisma.position.count({ where: { isActive: true } }),
+      prisma.employee.findMany({
+        where: { isActive: true },
+        include: { market: true, department: true, position: true, manager: { select: { id: true, name: true } } },
         orderBy: { createdAt: "desc" },
-        include: {
-          items: { include: { service: true } },
-        },
+        take: 6,
       }),
     ]);
 
-    return NextResponse.json({
-      todayOrders,
-      activeQueue,
-      todayRevenue: todayRevenue._sum.total ?? 0,
-      totalCustomers,
-      todayAppointments,
-      recentOrders,
+    const marketGroups = await prisma.market.findMany({
+      where: { isActive: true },
+      include: { _count: { select: { employees: { where: { isActive: true } } } } },
+      orderBy: { sortOrder: "asc" },
     });
-  } catch (error) {
-    console.error("Dashboard stats error:", error);
-    return NextResponse.json(
-      { error: "هەڵە لە وەرگرتنی ئامارەکان" },
-      { status: 500 }
-    );
+
+    const deptGroups = await prisma.department.findMany({
+      where: { isActive: true },
+      include: { _count: { select: { employees: { where: { isActive: true } } } } },
+      orderBy: { sortOrder: "asc" },
+    });
+
+    return NextResponse.json({
+      totalEmployees: employees,
+      totalMarkets: markets,
+      totalDepartments: departments,
+      totalPositions: positions,
+      byMarket: marketGroups.map((m) => ({ id: m.id, name: m.name, count: m._count.employees })),
+      byDepartment: deptGroups.map((d) => ({ id: d.id, name: d.name, count: d._count.employees })),
+      recentEmployees,
+    });
+  } catch {
+    return NextResponse.json({ error: "database unavailable" }, { status: 503 });
   }
 }

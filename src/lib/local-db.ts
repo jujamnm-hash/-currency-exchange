@@ -1,89 +1,58 @@
-import {
-  generateOrderNumber,
-  getNextStatus,
-  ORDER_STATUS_FLOW,
-  VEHICLE_LABELS,
-} from "./utils";
+const DB_KEY = "org_structure_db_v1";
 
-const DB_KEY = "ghassle_hawler_db_v1";
-
-export type VehicleType = keyof typeof VEHICLE_LABELS;
-export type OrderStatus = (typeof ORDER_STATUS_FLOW)[number] | "CANCELLED";
-export type PaymentMethod = "CASH" | "CARD" | "MOBILE_PAYMENT" | "MEMBERSHIP";
-
-interface Service {
+export interface Market {
   id: string;
-  nameKu: string;
-  nameEn: string;
-  basePrice: number;
-  duration: number;
-  category: string;
-  icon: string;
+  name: string;
+  code?: string;
+  location?: string;
+  description?: string;
   isActive: boolean;
   sortOrder: number;
 }
 
-interface Addon {
-  id: string;
-  nameKu: string;
-  price: number;
-}
-
-interface Multiplier {
-  vehicleType: VehicleType;
-  multiplier: number;
-  labelKu: string;
-}
-
-interface Order {
-  id: string;
-  orderNumber: string;
-  plateNumber: string;
-  vehicleType: VehicleType;
-  customerName?: string;
-  customerPhone?: string;
-  status: OrderStatus;
-  subtotal: number;
-  discount: number;
-  tax: number;
-  total: number;
-  notes?: string;
-  queuePosition?: number | null;
-  createdAt: string;
-  items: { service: { nameKu: string }; price: number }[];
-  payment?: { method: PaymentMethod; status: string };
-}
-
-interface Customer {
+export interface Department {
   id: string;
   name: string;
-  phone: string;
-  loyaltyPoints: number;
-  vehicles: { plateNumber: string; vehicleType: string }[];
-  _count: { orders: number };
+  code?: string;
+  description?: string;
+  parentId?: string | null;
+  sortOrder: number;
+  isActive: boolean;
 }
 
-interface Appointment {
+export interface Position {
   id: string;
-  scheduledAt: string;
-  status: string;
-  estimatedTotal: number;
-  customer: { name: string; phone: string };
-  vehicle?: { plateNumber: string };
-  items: { service: { nameKu: string }; price: number }[];
+  name: string;
+  code?: string;
+  description?: string;
+  departmentId?: string | null;
+  level: number;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface Employee {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  employeeCode?: string;
+  marketId?: string | null;
+  departmentId?: string | null;
+  positionId?: string | null;
+  managerId?: string | null;
+  hireDate?: string | null;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 interface DB {
-  services: Service[];
-  addons: Addon[];
-  multipliers: Multiplier[];
-  orders: Order[];
-  customers: Customer[];
-  appointments: Appointment[];
+  markets: Market[];
+  departments: Department[];
+  positions: Position[];
+  employees: Employee[];
   settings: Record<string, string>;
-  employees: { id: string; name: string; role: string; phone?: string }[];
-  inventory: { id: string; nameKu: string; quantity: number; unit: string; minQuantity: number }[];
-  membershipPlans: { id: string; nameKu: string; washesCount: number; price: number; validityDays: number }[];
 }
 
 function uid() {
@@ -91,61 +60,112 @@ function uid() {
 }
 
 function defaultDB(): DB {
-  const services: Service[] = [
-    { id: "s1", nameKu: "غەسڵی سادە", nameEn: "Basic Wash", basePrice: 10000, duration: 15, category: "exterior", icon: "droplets", isActive: true, sortOrder: 1 },
-    { id: "s2", nameKu: "غەسڵی تەواو", nameEn: "Full Wash", basePrice: 15000, duration: 25, category: "exterior", icon: "sparkles", isActive: true, sortOrder: 2 },
-    { id: "s3", nameKu: "غەسڵی پڕیمیەم", nameEn: "Premium Wash", basePrice: 25000, duration: 40, category: "premium", icon: "star", isActive: true, sortOrder: 3 },
-    { id: "s4", nameKu: "پاککردنەوەی ناوەوە", nameEn: "Interior Cleaning", basePrice: 20000, duration: 45, category: "interior", icon: "armchair", isActive: true, sortOrder: 4 },
-    { id: "s5", nameKu: "واکس و پۆڵیش", nameEn: "Wax & Polish", basePrice: 30000, duration: 60, category: "premium", icon: "gem", isActive: true, sortOrder: 5 },
-    { id: "s6", nameKu: "پاککردنەوەی ئەنجام", nameEn: "Engine Cleaning", basePrice: 35000, duration: 50, category: "special", icon: "cog", isActive: true, sortOrder: 6 },
-    { id: "s7", nameKu: "غەسڵی ژێرەوە", nameEn: "Undercarriage Wash", basePrice: 12000, duration: 20, category: "exterior", icon: "arrow-down", isActive: true, sortOrder: 7 },
-    { id: "s8", nameKu: "پاککردنەوەی پەنجەرە", nameEn: "Window Cleaning", basePrice: 8000, duration: 15, category: "interior", icon: "square", isActive: true, sortOrder: 8 },
+  const markets: Market[] = [
+    { id: "m1", name: "مارکێتی ناوەندی", code: "M01", location: "هەولێر", isActive: true, sortOrder: 1 },
+    { id: "m2", name: "مارکێتی ١٠٠ مەتر", code: "M02", location: "هەولێر", isActive: true, sortOrder: 2 },
+    { id: "m3", name: "مارکێتی ئانکاوا", code: "M03", location: "هەولێر", isActive: true, sortOrder: 3 },
   ];
 
-  const multipliers: Multiplier[] = [
-    { vehicleType: "SEDAN", multiplier: 1.0, labelKu: "سەدان" },
-    { vehicleType: "SUV", multiplier: 1.3, labelKu: "SUV" },
-    { vehicleType: "TRUCK", multiplier: 1.5, labelKu: "بارهەڵگر" },
-    { vehicleType: "VAN", multiplier: 1.4, labelKu: "ڤان" },
-    { vehicleType: "MOTORCYCLE", multiplier: 0.6, labelKu: "ماتۆرسکیل" },
-    { vehicleType: "LUXURY", multiplier: 1.8, labelKu: "لوکس" },
+  const departments: Department[] = [
+    { id: "d1", name: "بەڕێوەبەرایەتی گشتی", code: "D01", parentId: null, sortOrder: 1, isActive: true },
+    { id: "d2", name: "سەرچاوە مرۆییەکان", code: "D02", parentId: "d1", sortOrder: 2, isActive: true },
+    { id: "d3", name: "فرۆشتن", code: "D03", parentId: "d1", sortOrder: 3, isActive: true },
+    { id: "d4", name: "کارگێڕی", code: "D04", parentId: "d1", sortOrder: 4, isActive: true },
+  ];
+
+  const positions: Position[] = [
+    { id: "p1", name: "بەڕێوەبەری گشتی", code: "P01", departmentId: "d1", level: 5, isActive: true, sortOrder: 1 },
+    { id: "p2", name: "بەڕێوەبەری مارکێت", code: "P02", departmentId: "d3", level: 4, isActive: true, sortOrder: 2 },
+    { id: "p3", name: "سەرپەرشتیاری فرۆشتن", code: "P03", departmentId: "d3", level: 3, isActive: true, sortOrder: 3 },
+    { id: "p4", name: "کارمەندی فرۆشتن", code: "P04", departmentId: "d3", level: 2, isActive: true, sortOrder: 4 },
+    { id: "p5", name: "کارمەندی کۆگا", code: "P05", departmentId: "d4", level: 2, isActive: true, sortOrder: 5 },
+    { id: "p6", name: "کارمەندی سەرچاوە مرۆییەکان", code: "P06", departmentId: "d2", level: 2, isActive: true, sortOrder: 6 },
+  ];
+
+  const employees: Employee[] = [
+    {
+      id: "e1",
+      name: "ئارام محەمەد",
+      phone: "07501234567",
+      employeeCode: "E001",
+      marketId: "m1",
+      departmentId: "d1",
+      positionId: "p1",
+      managerId: null,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "e2",
+      name: "سارا ئەحمەد",
+      phone: "07501234568",
+      employeeCode: "E002",
+      marketId: "m1",
+      departmentId: "d3",
+      positionId: "p2",
+      managerId: "e1",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "e3",
+      name: "هیوا عەلی",
+      phone: "07501234569",
+      employeeCode: "E003",
+      marketId: "m1",
+      departmentId: "d3",
+      positionId: "p3",
+      managerId: "e2",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "e4",
+      name: "لانا کەریم",
+      phone: "07501234570",
+      employeeCode: "E004",
+      marketId: "m2",
+      departmentId: "d3",
+      positionId: "p4",
+      managerId: "e2",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "e5",
+      name: "دیلان حسن",
+      phone: "07501234571",
+      employeeCode: "E005",
+      marketId: "m3",
+      departmentId: "d4",
+      positionId: "p5",
+      managerId: "e1",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "e6",
+      name: "نۆر خان",
+      phone: "07501234572",
+      employeeCode: "E006",
+      marketId: "m1",
+      departmentId: "d2",
+      positionId: "p6",
+      managerId: "e1",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    },
   ];
 
   return {
-    services,
-    addons: [
-      { id: "a1", nameKu: "بۆنخۆش", price: 3000 },
-      { id: "a2", nameKu: "پاککردنەوەی تایەر", price: 5000 },
-      { id: "a3", nameKu: "پاککردنەوەی داشبۆرد", price: 7000 },
-      { id: "a4", nameKu: "ئارۆما", price: 10000 },
-      { id: "a5", nameKu: "پاککردنەوەی قاپەکان", price: 15000 },
-    ],
-    multipliers,
-    orders: [],
-    customers: [],
-    appointments: [],
+    markets,
+    departments,
+    positions,
+    employees,
     settings: {
-      shop_name: "غەسلی هەولێر",
-      shop_name_en: "Ghassle Hawler Car Wash",
-      currency: "IQD",
-      opening_time: "08:00",
-      closing_time: "22:00",
-      phone: "07501234567",
-      address: "هەولێر، کوردستان",
+      org_name: "هەیکەلی ئیداری",
+      org_subtitle: "سیستەمی ڕێکخستنی کارمەندان",
     },
-    employees: [
-      { id: "e1", name: "کارمەند ١", role: "washer", phone: "07501234567" },
-      { id: "e2", name: "کارمەند ٢", role: "washer", phone: "07507654321" },
-      { id: "e3", name: "بەڕێوەبەر", role: "manager", phone: "07501111111" },
-    ],
-    inventory: [
-      { id: "i1", nameKu: "شامپۆی غەسڵ", quantity: 50, unit: "liter", minQuantity: 10 },
-      { id: "i2", nameKu: "واکس", quantity: 20, unit: "liter", minQuantity: 5 },
-      { id: "i3", nameKu: "پاککەرەوەی ناوەوە", quantity: 30, unit: "liter", minQuantity: 8 },
-    ],
-    membershipPlans: [
-      { id: "m1", nameKu: "پلانی مانگانە", washesCount: 8, price: 100000, validityDays: 30 },
-    ],
   };
 }
 
@@ -155,7 +175,7 @@ function load(): DB {
     const raw = localStorage.getItem(DB_KEY);
     if (!raw) {
       const db = defaultDB();
-      save(db);
+      localStorage.setItem(DB_KEY, JSON.stringify(db));
       return db;
     }
     return JSON.parse(raw) as DB;
@@ -165,206 +185,288 @@ function load(): DB {
 }
 
 function save(db: DB) {
+  if (typeof window === "undefined") return;
   localStorage.setItem(DB_KEY, JSON.stringify(db));
 }
 
-function isToday(d: string) {
-  const date = new Date(d);
-  const now = new Date();
-  return date.toDateString() === now.toDateString();
+export function useLocalMode() {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem("org_force_api") !== "1";
+}
+
+function enrichEmployee(e: Employee, db: DB) {
+  return {
+    ...e,
+    market: db.markets.find((m) => m.id === e.marketId) ?? null,
+    department: db.departments.find((d) => d.id === e.departmentId) ?? null,
+    position: db.positions.find((p) => p.id === e.positionId) ?? null,
+    manager: db.employees.find((m) => m.id === e.managerId)
+      ? { id: e.managerId!, name: db.employees.find((m) => m.id === e.managerId)!.name }
+      : null,
+  };
 }
 
 export const localDb = {
   getDashboard() {
     const db = load();
-    const todayOrders = db.orders.filter((o) => isToday(o.createdAt));
-    const activeQueue = db.orders.filter((o) => !["COMPLETED", "CANCELLED"].includes(o.status));
-    const todayRevenue = todayOrders.filter((o) => o.status === "COMPLETED").reduce((s, o) => s + o.total, 0);
-
+    const activeEmployees = db.employees.filter((e) => e.isActive);
+    const byMarket = db.markets.map((m) => ({
+      id: m.id,
+      name: m.name,
+      count: activeEmployees.filter((e) => e.marketId === m.id).length,
+    }));
+    const byDepartment = db.departments.map((d) => ({
+      id: d.id,
+      name: d.name,
+      count: activeEmployees.filter((e) => e.departmentId === d.id).length,
+    }));
     return {
-      todayOrders: todayOrders.length,
-      activeQueue: activeQueue.length,
-      todayRevenue,
-      totalCustomers: db.customers.length,
-      todayAppointments: db.appointments.filter((a) => isToday(a.scheduledAt)).length,
-      recentOrders: [...db.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5),
+      totalEmployees: activeEmployees.length,
+      totalMarkets: db.markets.filter((m) => m.isActive).length,
+      totalDepartments: db.departments.filter((d) => d.isActive).length,
+      totalPositions: db.positions.filter((p) => p.isActive).length,
+      byMarket,
+      byDepartment,
+      recentEmployees: activeEmployees
+        .slice()
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, 6)
+        .map((e) => enrichEmployee(e, db)),
     };
   },
 
-  getOrders(active?: boolean) {
-    const db = load();
-    let orders = [...db.orders];
-    if (active) orders = orders.filter((o) => !["COMPLETED", "CANCELLED"].includes(o.status));
-    return orders.sort((a, b) => (a.queuePosition ?? 99) - (b.queuePosition ?? 99));
+  getMarkets() {
+    return load().markets.sort((a, b) => a.sortOrder - b.sortOrder);
   },
 
-  createOrder(data: {
-    plateNumber: string;
-    vehicleType: VehicleType;
-    customerName?: string;
-    customerPhone?: string;
-    serviceIds: string[];
-    addonIds: string[];
-    paymentMethod: PaymentMethod;
+  createMarket(data: { name: string; code?: string; location?: string; description?: string }) {
+    const db = load();
+    const market: Market = {
+      id: uid(),
+      name: data.name,
+      code: data.code,
+      location: data.location,
+      description: data.description,
+      isActive: true,
+      sortOrder: db.markets.length + 1,
+    };
+    db.markets.push(market);
+    save(db);
+    return market;
+  },
+
+  updateMarket(id: string, data: Partial<Market>) {
+    const db = load();
+    const idx = db.markets.findIndex((m) => m.id === id);
+    if (idx < 0) throw new Error("مارکێت نەدۆزرایەوە");
+    db.markets[idx] = { ...db.markets[idx], ...data, id };
+    save(db);
+    return db.markets[idx];
+  },
+
+  deleteMarket(id: string) {
+    const db = load();
+    db.markets = db.markets.filter((m) => m.id !== id);
+    db.employees = db.employees.map((e) => (e.marketId === id ? { ...e, marketId: null } : e));
+    save(db);
+    return { ok: true };
+  },
+
+  getDepartments() {
+    return load().departments.sort((a, b) => a.sortOrder - b.sortOrder);
+  },
+
+  createDepartment(data: { name: string; code?: string; description?: string; parentId?: string | null }) {
+    const db = load();
+    const department: Department = {
+      id: uid(),
+      name: data.name,
+      code: data.code,
+      description: data.description,
+      parentId: data.parentId ?? null,
+      sortOrder: db.departments.length + 1,
+      isActive: true,
+    };
+    db.departments.push(department);
+    save(db);
+    return department;
+  },
+
+  updateDepartment(id: string, data: Partial<Department>) {
+    const db = load();
+    const idx = db.departments.findIndex((d) => d.id === id);
+    if (idx < 0) throw new Error("بەش نەدۆزرایەوە");
+    db.departments[idx] = { ...db.departments[idx], ...data, id };
+    save(db);
+    return db.departments[idx];
+  },
+
+  deleteDepartment(id: string) {
+    const db = load();
+    db.departments = db.departments
+      .filter((d) => d.id !== id)
+      .map((d) => (d.parentId === id ? { ...d, parentId: null } : d));
+    db.positions = db.positions.map((p) => (p.departmentId === id ? { ...p, departmentId: null } : p));
+    db.employees = db.employees.map((e) => (e.departmentId === id ? { ...e, departmentId: null } : e));
+    save(db);
+    return { ok: true };
+  },
+
+  getPositions() {
+    const db = load();
+    return db.positions
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((p) => ({
+        ...p,
+        department: db.departments.find((d) => d.id === p.departmentId) ?? null,
+      }));
+  },
+
+  createPosition(data: {
+    name: string;
+    code?: string;
+    description?: string;
+    departmentId?: string | null;
+    level?: number;
+  }) {
+    const db = load();
+    const position: Position = {
+      id: uid(),
+      name: data.name,
+      code: data.code,
+      description: data.description,
+      departmentId: data.departmentId ?? null,
+      level: data.level ?? 1,
+      isActive: true,
+      sortOrder: db.positions.length + 1,
+    };
+    db.positions.push(position);
+    save(db);
+    return {
+      ...position,
+      department: db.departments.find((d) => d.id === position.departmentId) ?? null,
+    };
+  },
+
+  updatePosition(id: string, data: Partial<Position>) {
+    const db = load();
+    const idx = db.positions.findIndex((p) => p.id === id);
+    if (idx < 0) throw new Error("پۆست نەدۆزرایەوە");
+    db.positions[idx] = { ...db.positions[idx], ...data, id };
+    save(db);
+    return {
+      ...db.positions[idx],
+      department: db.departments.find((d) => d.id === db.positions[idx].departmentId) ?? null,
+    };
+  },
+
+  deletePosition(id: string) {
+    const db = load();
+    db.positions = db.positions.filter((p) => p.id !== id);
+    db.employees = db.employees.map((e) => (e.positionId === id ? { ...e, positionId: null } : e));
+    save(db);
+    return { ok: true };
+  },
+
+  getEmployees(search?: string) {
+    const db = load();
+    let list = db.employees.slice();
+    if (search) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (e) =>
+          e.name.toLowerCase().includes(q) ||
+          e.phone?.includes(q) ||
+          e.employeeCode?.toLowerCase().includes(q)
+      );
+    }
+    return list
+      .sort((a, b) => a.name.localeCompare(b.name, "ku"))
+      .map((e) => enrichEmployee(e, db));
+  },
+
+  createEmployee(data: {
+    name: string;
+    phone?: string;
+    email?: string;
+    employeeCode?: string;
+    marketId?: string | null;
+    departmentId?: string | null;
+    positionId?: string | null;
+    managerId?: string | null;
     notes?: string;
   }) {
     const db = load();
-    const mult = db.multipliers.find((m) => m.vehicleType === data.vehicleType)?.multiplier ?? 1;
-    const services = db.services.filter((s) => data.serviceIds.includes(s.id));
-    const addons = db.addons.filter((a) => data.addonIds.includes(a.id));
-    const subtotal = services.reduce((s, x) => s + x.basePrice * mult, 0) + addons.reduce((s, x) => s + x.price, 0);
-    const total = subtotal;
-    const maxQ = Math.max(0, ...db.orders.filter((o) => !["COMPLETED", "CANCELLED"].includes(o.status)).map((o) => o.queuePosition ?? 0));
-
-    const order: Order = {
-      id: uid(),
-      orderNumber: generateOrderNumber(),
-      plateNumber: data.plateNumber,
-      vehicleType: data.vehicleType,
-      customerName: data.customerName,
-      customerPhone: data.customerPhone,
-      status: "WAITING",
-      subtotal,
-      discount: 0,
-      tax: 0,
-      total,
-      notes: data.notes,
-      queuePosition: maxQ + 1,
-      createdAt: new Date().toISOString(),
-      items: services.map((s) => ({ service: { nameKu: s.nameKu }, price: s.basePrice * mult })),
-      payment: { method: data.paymentMethod, status: "PAID" },
-    };
-
-    db.orders.push(order);
-
-    if (data.customerPhone) {
-      let c = db.customers.find((x) => x.phone === data.customerPhone);
-      if (!c) {
-        c = {
-          id: uid(),
-          name: data.customerName ?? "کڕیار",
-          phone: data.customerPhone,
-          loyaltyPoints: 0,
-          vehicles: [{ plateNumber: data.plateNumber, vehicleType: data.vehicleType }],
-          _count: { orders: 0 },
-        };
-        db.customers.push(c);
-      }
-      c._count.orders++;
-    }
-
-    save(db);
-    return order;
-  },
-
-  advanceOrder(id: string) {
-    const db = load();
-    const order = db.orders.find((o) => o.id === id);
-    if (!order) throw new Error("not found");
-    const next = getNextStatus(order.status as never);
-    if (!next) throw new Error("no next");
-    order.status = next as OrderStatus;
-    if (next === "COMPLETED") order.queuePosition = null;
-    save(db);
-    return order;
-  },
-
-  cancelOrder(id: string) {
-    const db = load();
-    const order = db.orders.find((o) => o.id === id);
-    if (!order) throw new Error("not found");
-    order.status = "CANCELLED";
-    order.queuePosition = null;
-    save(db);
-    return order;
-  },
-
-  getServices() {
-    const db = load();
-    return { services: db.services, addons: db.addons, multipliers: db.multipliers };
-  },
-
-  getCustomers(search?: string) {
-    const db = load();
-    let customers = db.customers;
-    if (search) {
-      const q = search.toLowerCase();
-      customers = customers.filter((c) => c.name.includes(q) || c.phone.includes(q));
-    }
-    return customers;
-  },
-
-  createCustomer(data: { name: string; phone: string; plateNumber?: string }) {
-    const db = load();
-    const customer: Customer = {
+    const employee: Employee = {
       id: uid(),
       name: data.name,
       phone: data.phone,
-      loyaltyPoints: 0,
-      vehicles: data.plateNumber ? [{ plateNumber: data.plateNumber, vehicleType: "SEDAN" }] : [],
-      _count: { orders: 0 },
+      email: data.email,
+      employeeCode: data.employeeCode,
+      marketId: data.marketId ?? null,
+      departmentId: data.departmentId ?? null,
+      positionId: data.positionId ?? null,
+      managerId: data.managerId ?? null,
+      notes: data.notes,
+      isActive: true,
+      createdAt: new Date().toISOString(),
     };
-    db.customers.push(customer);
+    db.employees.push(employee);
     save(db);
-    return customer;
+    return enrichEmployee(employee, db);
   },
 
-  getAppointments() {
-    return load().appointments;
-  },
-
-  getReports(period: string) {
+  updateEmployee(id: string, data: Partial<Employee>) {
     const db = load();
-    const now = new Date();
-    const days = period === "month" ? 30 : period === "week" ? 7 : 0;
-    const start = days ? new Date(now.getTime() - days * 86400000) : new Date(now.setHours(0, 0, 0, 0));
+    const idx = db.employees.findIndex((e) => e.id === id);
+    if (idx < 0) throw new Error("کارمەند نەدۆزرایەوە");
+    db.employees[idx] = { ...db.employees[idx], ...data, id };
+    save(db);
+    return enrichEmployee(db.employees[idx], db);
+  },
 
-    const orders = db.orders.filter((o) => o.status === "COMPLETED" && new Date(o.createdAt) >= start);
-    const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
-    const cashRevenue = orders.filter((o) => o.payment?.method === "CASH").reduce((s, o) => s + o.total, 0);
-    const cardRevenue = orders.filter((o) => o.payment?.method === "CARD").reduce((s, o) => s + o.total, 0);
+  deleteEmployee(id: string) {
+    const db = load();
+    db.employees = db.employees
+      .filter((e) => e.id !== id)
+      .map((e) => (e.managerId === id ? { ...e, managerId: null } : e));
+    save(db);
+    return { ok: true };
+  },
 
-    const serviceBreakdown: Record<string, { count: number; revenue: number }> = {};
-    for (const o of orders) {
-      for (const item of o.items) {
-        const n = item.service.nameKu;
-        if (!serviceBreakdown[n]) serviceBreakdown[n] = { count: 0, revenue: 0 };
-        serviceBreakdown[n].count++;
-        serviceBreakdown[n].revenue += item.price;
-      }
+  getOrgChart() {
+    const db = load();
+    const active = db.employees.filter((e) => e.isActive).map((e) => enrichEmployee(e, db));
+    const roots = active.filter((e) => !e.managerId || !active.some((x) => x.id === e.managerId));
+
+    function build(node: (typeof active)[0]): (typeof active)[0] & { children: ReturnType<typeof build>[] } {
+      return {
+        ...node,
+        children: active.filter((e) => e.managerId === node.id).map(build),
+      };
     }
 
-    const vehicleBreakdown: Record<string, number> = {};
-    for (const o of orders) vehicleBreakdown[o.vehicleType] = (vehicleBreakdown[o.vehicleType] ?? 0) + 1;
-
     return {
-      period,
-      totalOrders: orders.length,
-      totalRevenue,
-      cashRevenue,
-      cardRevenue,
-      avgOrderValue: orders.length ? totalRevenue / orders.length : 0,
-      serviceBreakdown,
-      vehicleBreakdown,
+      tree: roots.map(build),
+      departments: db.departments,
+      markets: db.markets,
     };
   },
 
   getSettings() {
-    const db = load();
-    return {
-      settings: db.settings,
-      employees: db.employees,
-      inventory: db.inventory,
-      membershipPlans: db.membershipPlans,
-    };
+    return load().settings;
   },
 
-  getSetupStatus() {
+  updateSettings(data: Record<string, string>) {
     const db = load();
-    return { ok: true, status: "ready", serviceCount: db.services.length, settingsCount: Object.keys(db.settings).length };
+    db.settings = { ...db.settings, ...data };
+    save(db);
+    return db.settings;
+  },
+
+  reset() {
+    const db = defaultDB();
+    save(db);
+    return { ok: true };
   },
 };
-
-export function useLocalMode(): boolean {
-  return process.env.NEXT_PUBLIC_STATIC_MODE === "true";
-}
