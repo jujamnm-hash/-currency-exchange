@@ -70,11 +70,36 @@ model Employee {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  markets    Market[]    @relation("EmployeeMarkets")
-  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  position   Position?   @relation(fields: [positionId], references: [id], onDelete: SetNull)
-  manager    Employee?   @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
-  reports    Employee[]  @relation("EmployeeManager")
+  markets    Market[]      @relation("EmployeeMarkets")
+  department Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  position   Position?     @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  manager    Employee?     @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
+  reports    Employee[]    @relation("EmployeeManager")
+  leaves     LeaveRecord[]
+}
+
+enum LeaveKind {
+  DAY
+  HOUR
+}
+
+model LeaveRecord {
+  id         String    @id @default(cuid())
+  employeeId String
+  kind       LeaveKind
+  date       DateTime  @db.Date
+  days       Float     @default(0)
+  hours      Float     @default(0)
+  reason     String?
+  year       Int
+  month      Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, year, month])
+  @@index([year, month])
 }
 
 model Settings {

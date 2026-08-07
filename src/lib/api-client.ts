@@ -164,4 +164,49 @@ export const api = {
   async reset() {
     return localDb.reset();
   },
+
+  async leaves(filters?: { year?: number; month?: number; employeeId?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.year) params.set("year", String(filters.year));
+    if (filters?.month) params.set("month", String(filters.month));
+    if (filters?.employeeId) params.set("employeeId", filters.employeeId);
+    const qs = params.toString();
+    const path = qs ? `/api/leaves?${qs}` : "/api/leaves";
+    return (await tryApi<ReturnType<typeof localDb.getLeaves>>(path)) ?? localDb.getLeaves(filters);
+  },
+
+  async leaveReport(year: number, month: number) {
+    const path = `/api/leaves?report=1&year=${year}&month=${month}`;
+    return (
+      (await tryApi<ReturnType<typeof localDb.getLeaveReport>>(path)) ??
+      localDb.getLeaveReport(year, month)
+    );
+  },
+
+  async createLeave(data: Parameters<typeof localDb.createLeave>[0]) {
+    const result = await tryApi<ReturnType<typeof localDb.createLeave>>("/api/leaves", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return result ?? localDb.createLeave(data);
+  },
+
+  async updateLeave(id: string, data: Parameters<typeof localDb.updateLeave>[1]) {
+    const result = await tryApi<ReturnType<typeof localDb.updateLeave>>("/api/leaves", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return result ?? localDb.updateLeave(id, data);
+  },
+
+  async deleteLeave(id: string) {
+    const result = await tryApi<{ ok: boolean }>("/api/leaves", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    return result ?? localDb.deleteLeave(id);
+  },
 };

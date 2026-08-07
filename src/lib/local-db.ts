@@ -1,5 +1,5 @@
-const DB_KEY = "org_structure_db_v2";
-const OLD_DB_KEY = "org_structure_db_v1";
+const DB_KEY = "org_structure_db_v3";
+const OLD_DB_KEYS = ["org_structure_db_v2", "org_structure_db_v1"];
 
 export interface Market {
   id: string;
@@ -48,11 +48,25 @@ export interface Employee {
   createdAt: string;
 }
 
+export interface LeaveRecord {
+  id: string;
+  employeeId: string;
+  kind: "DAY" | "HOUR";
+  date: string;
+  days: number;
+  hours: number;
+  reason?: string;
+  year: number;
+  month: number;
+  createdAt: string;
+}
+
 interface DB {
   markets: Market[];
   departments: Department[];
   positions: Position[];
   employees: Employee[];
+  leaves: LeaveRecord[];
   settings: Record<string, string>;
 }
 
@@ -187,6 +201,7 @@ function defaultDB(): DB {
     departments,
     positions,
     employees,
+    leaves: [],
     settings: {
       org_name: "هەیکەلی ئیداری",
       org_subtitle: "سیستەمی ڕێکخستنی کارمەندان",
@@ -197,7 +212,13 @@ function defaultDB(): DB {
 function load(): DB {
   if (typeof window === "undefined") return defaultDB();
   try {
-    const raw = localStorage.getItem(DB_KEY) || localStorage.getItem(OLD_DB_KEY);
+    let raw = localStorage.getItem(DB_KEY);
+    if (!raw) {
+      for (const key of OLD_DB_KEYS) {
+        raw = localStorage.getItem(key);
+        if (raw) break;
+      }
+    }
     if (!raw) {
       const db = defaultDB();
       localStorage.setItem(DB_KEY, JSON.stringify(db));
@@ -208,6 +229,7 @@ function load(): DB {
       departments: Department[];
       positions: Position[];
       employees: Array<Record<string, unknown>>;
+      leaves?: LeaveRecord[];
       settings: Record<string, string>;
     };
     const db: DB = {
@@ -216,6 +238,7 @@ function load(): DB {
       positions: parsed.positions || [],
       settings: parsed.settings || {},
       employees: (parsed.employees || []).map((e) => normalizeEmployee(e)),
+      leaves: Array.isArray(parsed.leaves) ? parsed.leaves : [],
     };
     localStorage.setItem(DB_KEY, JSON.stringify(db));
     return db;
@@ -499,6 +522,7 @@ export const localDb = {
     db.employees = db.employees
       .filter((e) => e.id !== id)
       .map((e) => (e.managerId === id ? { ...e, managerId: null } : e));
+    db.leaves = db.leaves.filter((l) => l.employeeId !== id);
     save(db);
     return { ok: true };
   },
@@ -531,6 +555,154 @@ export const localDb = {
     db.settings = { ...db.settings, ...data };
     save(db);
     return db.settings;
+  },
+
+  getLeaves(filters?: { year?: number; month?: number; employeeId?: string }) {
+    const db = load();
+    let list = db.leaves.slice();
+    if (filters?.year) list = list.filter((l) => l.year === filters.year);
+    if (filters?.month) list = list.filter((l) => l.month === filters.month);
+    if (filters?.employeeId) list = list.filter((l) => l.employeeId === filters.employeeId);
+    return list
+      .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+      .map((l) => ({
+        ...l,
+        employee: enrichEmployee(
+          db.employees.find((e) => e.id === l.employeeId) || {
+            id: l.employeeId,
+            name: "نەناسراو",
+            marketIds: [],
+            isActive: false,
+            createdAt: "",
+          },
+          db
+        ),
+      }));
+  },
+
+  createLeave(data: {
+    employeeId: string;
+    kind: "DAY" | "HOUR";
+    date: string;
+    days?: number;
+    hours?: number;
+    reason?: string;
+  }) {
+    const db = load();
+    if (!db.employees.some((e) => e.id === data.employeeId)) {
+      throw new Error("کارمەند نەدۆزرایەوە");
+    }
+    const d = data.date.slice(0, 10);
+    const [y, m] = d.split("-").map(Number);
+    const leave: LeaveRecord = {
+      id: uid(),
+      employeeId: data.employeeId,
+      kind: data.kind,
+      date: d,
+      days: data.kind === "DAY" ? Number(data.days) || 0 : 0,
+      hours: data.kind === "HOUR" ? Number(data.hours) || 0 : 0,
+      reason: data.reason,
+      year: y,
+      month: m,
+      createdAt: new Date().toISOString(),
+    };
+    db.leaves.push(leave);
+    save(db);
+    return {
+      ...leave,
+      employee: enrichEmployee(db.employees.find((e) => e.id === leave.employeeId)!, db),
+    };
+  },
+
+  updateLeave(
+    id: string,
+    data: Partial<{
+      employeeId: string;
+      kind: "DAY" | "HOUR";
+      date: string;
+      days: number;
+      hours: number;
+      reason: string;
+    }>
+  ) {
+    const db = load();
+    const idx = db.leaves.findIndex((l) => l.id === id);
+    if (idx < 0) throw new Error("تۆماری مۆڵەت نەدۆزرایەوە");
+    const current = db.leaves[idx];
+    const date = data.date ? data.date.slice(0, 10) : current.date;
+    const [y, m] = date.split("-").map(Number);
+    const kind = data.kind || current.kind;
+    db.leaves[idx] = {
+      ...current,
+      ...data,
+      id,
+      date,
+      kind,
+      days: kind === "DAY" ? Number(data.days ?? current.days) || 0 : 0,
+      hours: kind === "HOUR" ? Number(data.hours ?? current.hours) || 0 : 0,
+      year: y,
+      month: m,
+    };
+    save(db);
+    return {
+      ...db.leaves[idx],
+      employee: enrichEmployee(db.employees.find((e) => e.id === db.leaves[idx].employeeId)!, db),
+    };
+  },
+
+  deleteLeave(id: string) {
+    const db = load();
+    db.leaves = db.leaves.filter((l) => l.id !== id);
+    save(db);
+    return { ok: true };
+  },
+
+  getLeaveReport(year: number, month: number) {
+    const db = load();
+    const leaves = db.leaves.filter((l) => l.year === year && l.month === month);
+    const byEmployee = db.employees
+      .filter((e) => e.isActive)
+      .map((e) => {
+        const rows = leaves.filter((l) => l.employeeId === e.id);
+        const totalDays = rows.reduce((s, l) => s + (l.days || 0), 0);
+        const totalHours = rows.reduce((s, l) => s + (l.hours || 0), 0);
+        return {
+          employee: enrichEmployee(e, db),
+          totalDays,
+          totalHours,
+          dayCount: rows.filter((l) => l.kind === "DAY").length,
+          hourCount: rows.filter((l) => l.kind === "HOUR").length,
+          records: rows.length,
+        };
+      })
+      .filter((r) => r.records > 0)
+      .sort((a, b) => b.totalDays - a.totalDays || b.totalHours - a.totalHours);
+
+    return {
+      year,
+      month,
+      totalDays: leaves.reduce((s, l) => s + (l.days || 0), 0),
+      totalHours: leaves.reduce((s, l) => s + (l.hours || 0), 0),
+      totalRecords: leaves.length,
+      employeesWithLeave: byEmployee.length,
+      byEmployee,
+      leaves: leaves
+        .slice()
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map((l) => ({
+          ...l,
+          employee: enrichEmployee(
+            db.employees.find((e) => e.id === l.employeeId) || {
+              id: l.employeeId,
+              name: "نەناسراو",
+              marketIds: [],
+              isActive: false,
+              createdAt: "",
+            },
+            db
+          ),
+        })),
+    };
   },
 
   reset() {
