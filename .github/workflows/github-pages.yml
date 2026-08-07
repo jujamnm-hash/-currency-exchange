@@ -29,7 +29,10 @@ jobs:
         run: npm ci
 
       - name: Build static site
-        run: STATIC_EXPORT=true npm run build
+        run: |
+          # API routes need a server; GitHub Pages uses localStorage client DB
+          rm -rf src/app/api
+          STATIC_EXPORT=true npm run build
         env:
           NEXT_PUBLIC_STATIC_MODE: "true"
 

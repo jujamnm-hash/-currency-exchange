@@ -1,12 +1,12 @@
 {
-  "name": "ghassle-hawler",
+  "name": "org-structure",
   "version": "1.0.0",
-  "description": "سیستەمی بەڕێوەبردنی غەسلی سەیارە - غەسلی هەولێر",
+  "description": "سیستەمی هەیکەلی ئیداری و ڕێکخستنی کارمەندان",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "vercel-build": "prisma generate && prisma db push --skip-generate && tsx prisma/seed.ts && next build",
+    "vercel-build": "prisma generate && prisma db push --skip-generate && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",

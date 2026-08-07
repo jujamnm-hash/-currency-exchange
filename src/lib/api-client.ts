@@ -16,78 +16,237 @@ export const api = {
     return (await tryApi<ReturnType<typeof localDb.getDashboard>>("/api/dashboard")) ?? localDb.getDashboard();
   },
 
-  async orders(active?: boolean) {
-    const path = active ? "/api/orders?active=true" : "/api/orders";
-    return (await tryApi<Awaited<ReturnType<typeof localDb.getOrders>>>(path)) ?? localDb.getOrders(active);
+  async markets() {
+    return (await tryApi<ReturnType<typeof localDb.getMarkets>>("/api/markets")) ?? localDb.getMarkets();
   },
 
-  async createOrder(data: Parameters<typeof localDb.createOrder>[0]) {
-    const result = await tryApi<ReturnType<typeof localDb.createOrder>>("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...data,
-        serviceIds: data.serviceIds,
-        addonIds: data.addonIds,
-        paymentMethod: data.paymentMethod,
-      }),
-    });
-    return result ?? localDb.createOrder(data);
-  },
-
-  async advanceOrder(id: string) {
-    if (useLocalMode()) return localDb.advanceOrder(id);
-    const result = await tryApi(`/api/orders`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "advance" }),
-    });
-    if (result) return result;
-    return localDb.advanceOrder(id);
-  },
-
-  async cancelOrder(id: string) {
-    if (useLocalMode()) return localDb.cancelOrder(id);
-    const result = await tryApi(`/api/orders`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "cancel" }),
-    });
-    if (result) return result;
-    return localDb.cancelOrder(id);
-  },
-
-  async services() {
-    return (await tryApi<ReturnType<typeof localDb.getServices>>("/api/services")) ?? localDb.getServices();
-  },
-
-  async customers(search?: string) {
-    const path = search ? `/api/customers?search=${encodeURIComponent(search)}` : "/api/customers";
-    return (await tryApi<ReturnType<typeof localDb.getCustomers>>(path)) ?? localDb.getCustomers(search);
-  },
-
-  async createCustomer(data: Parameters<typeof localDb.createCustomer>[0]) {
-    const result = await tryApi<ReturnType<typeof localDb.createCustomer>>("/api/customers", {
+  async createMarket(data: Parameters<typeof localDb.createMarket>[0]) {
+    const result = await tryApi<ReturnType<typeof localDb.createMarket>>("/api/markets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    return result ?? localDb.createCustomer(data);
+    return result ?? localDb.createMarket(data);
   },
 
-  async appointments() {
-    return (await tryApi<ReturnType<typeof localDb.getAppointments>>("/api/appointments")) ?? localDb.getAppointments();
+  async updateMarket(id: string, data: Parameters<typeof localDb.updateMarket>[1]) {
+    const result = await tryApi<ReturnType<typeof localDb.updateMarket>>("/api/markets", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return result ?? localDb.updateMarket(id, data);
   },
 
-  async reports(period: string) {
-    return (await tryApi<ReturnType<typeof localDb.getReports>>(`/api/reports?period=${period}`)) ?? localDb.getReports(period);
+  async deleteMarket(id: string) {
+    const result = await tryApi<{ ok: boolean }>("/api/markets", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    return result ?? localDb.deleteMarket(id);
+  },
+
+  async departments() {
+    return (
+      (await tryApi<ReturnType<typeof localDb.getDepartments>>("/api/departments")) ??
+      localDb.getDepartments()
+    );
+  },
+
+  async createDepartment(data: Parameters<typeof localDb.createDepartment>[0]) {
+    const result = await tryApi<ReturnType<typeof localDb.createDepartment>>("/api/departments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return result ?? localDb.createDepartment(data);
+  },
+
+  async updateDepartment(id: string, data: Parameters<typeof localDb.updateDepartment>[1]) {
+    const result = await tryApi<ReturnType<typeof localDb.updateDepartment>>("/api/departments", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return result ?? localDb.updateDepartment(id, data);
+  },
+
+  async deleteDepartment(id: string) {
+    const result = await tryApi<{ ok: boolean }>("/api/departments", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    return result ?? localDb.deleteDepartment(id);
+  },
+
+  async positions() {
+    return (await tryApi<ReturnType<typeof localDb.getPositions>>("/api/positions")) ?? localDb.getPositions();
+  },
+
+  async createPosition(data: Parameters<typeof localDb.createPosition>[0]) {
+    const result = await tryApi<ReturnType<typeof localDb.createPosition>>("/api/positions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return result ?? localDb.createPosition(data);
+  },
+
+  async updatePosition(id: string, data: Parameters<typeof localDb.updatePosition>[1]) {
+    const result = await tryApi<ReturnType<typeof localDb.updatePosition>>("/api/positions", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return result ?? localDb.updatePosition(id, data);
+  },
+
+  async deletePosition(id: string) {
+    const result = await tryApi<{ ok: boolean }>("/api/positions", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    return result ?? localDb.deletePosition(id);
+  },
+
+  async employees(search?: string) {
+    const path = search ? `/api/employees?search=${encodeURIComponent(search)}` : "/api/employees";
+    return (await tryApi<ReturnType<typeof localDb.getEmployees>>(path)) ?? localDb.getEmployees(search);
+  },
+
+  async createEmployee(data: Parameters<typeof localDb.createEmployee>[0]) {
+    const result = await tryApi<ReturnType<typeof localDb.createEmployee>>("/api/employees", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return result ?? localDb.createEmployee(data);
+  },
+
+  async updateEmployee(id: string, data: Parameters<typeof localDb.updateEmployee>[1]) {
+    const result = await tryApi<ReturnType<typeof localDb.updateEmployee>>("/api/employees", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return result ?? localDb.updateEmployee(id, data);
+  },
+
+  async deleteEmployee(id: string) {
+    const result = await tryApi<{ ok: boolean }>("/api/employees", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    return result ?? localDb.deleteEmployee(id);
+  },
+
+  async orgChart() {
+    return (await tryApi<ReturnType<typeof localDb.getOrgChart>>("/api/org-chart")) ?? localDb.getOrgChart();
   },
 
   async settings() {
     return (await tryApi<ReturnType<typeof localDb.getSettings>>("/api/settings")) ?? localDb.getSettings();
   },
 
-  async setupStatus() {
-    return (await tryApi<ReturnType<typeof localDb.getSetupStatus>>("/api/setup")) ?? localDb.getSetupStatus();
+  async updateSettings(data: Record<string, string>) {
+    const result = await tryApi<ReturnType<typeof localDb.updateSettings>>("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return result ?? localDb.updateSettings(data);
+  },
+
+  async reset() {
+    return localDb.reset();
+  },
+
+  async leaves(filters?: { year?: number; month?: number; employeeId?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.year) params.set("year", String(filters.year));
+    if (filters?.month) params.set("month", String(filters.month));
+    if (filters?.employeeId) params.set("employeeId", filters.employeeId);
+    const qs = params.toString();
+    const path = qs ? `/api/leaves?${qs}` : "/api/leaves";
+    return (await tryApi<ReturnType<typeof localDb.getLeaves>>(path)) ?? localDb.getLeaves(filters);
+  },
+
+  async leaveReport(year: number, month: number) {
+    const path = `/api/leaves?report=1&year=${year}&month=${month}`;
+    return (
+      (await tryApi<ReturnType<typeof localDb.getLeaveReport>>(path)) ??
+      localDb.getLeaveReport(year, month)
+    );
+  },
+
+  async createLeave(data: Parameters<typeof localDb.createLeave>[0]) {
+    const result = await tryApi<ReturnType<typeof localDb.createLeave>>("/api/leaves", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return result ?? localDb.createLeave(data);
+  },
+
+  async updateLeave(id: string, data: Parameters<typeof localDb.updateLeave>[1]) {
+    const result = await tryApi<ReturnType<typeof localDb.updateLeave>>("/api/leaves", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return result ?? localDb.updateLeave(id, data);
+  },
+
+  async deleteLeave(id: string) {
+    const result = await tryApi<{ ok: boolean }>("/api/leaves", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    return result ?? localDb.deleteLeave(id);
+  },
+
+  async dailyWorks(filters?: { date?: string; employeeId?: string; year?: number; month?: number }) {
+    const params = new URLSearchParams();
+    if (filters?.date) params.set("date", filters.date);
+    if (filters?.employeeId) params.set("employeeId", filters.employeeId);
+    if (filters?.year) params.set("year", String(filters.year));
+    if (filters?.month) params.set("month", String(filters.month));
+    const qs = params.toString();
+    const path = qs ? `/api/daily-works?${qs}` : "/api/daily-works";
+    return (
+      (await tryApi<ReturnType<typeof localDb.getDailyWorks>>(path)) ?? localDb.getDailyWorks(filters)
+    );
+  },
+
+  async createDailyWork(data: Parameters<typeof localDb.createDailyWork>[0]) {
+    const result = await tryApi<ReturnType<typeof localDb.createDailyWork>>("/api/daily-works", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return result ?? localDb.createDailyWork(data);
+  },
+
+  async updateDailyWork(id: string, data: Parameters<typeof localDb.updateDailyWork>[1]) {
+    const result = await tryApi<ReturnType<typeof localDb.updateDailyWork>>("/api/daily-works", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return result ?? localDb.updateDailyWork(id, data);
+  },
+
+  async deleteDailyWork(id: string) {
+    const result = await tryApi<{ ok: boolean }>("/api/daily-works", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    return result ?? localDb.deleteDailyWork(id);
   },
 };

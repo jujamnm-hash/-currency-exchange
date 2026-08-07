@@ -1,11 +1,11 @@
 {
-  "name": "غەسلی هەولێر",
-  "short_name": "غەسلی هەولێر",
-  "description": "سیستەمی بەڕێوەبردنی غەسلی سەیارە - Ghassle Hawler Car Wash",
+  "name": "هەیکەلی ئیداری",
+  "short_name": "هەیکەل",
+  "description": "سیستەمی بەڕێوەبردنی هەیکەلی ئیداری، کارمەند، پۆست و مارکێت",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1d4ed8",
+  "background_color": "#eef3f1",
+  "theme_color": "#0f766e",
   "orientation": "portrait-primary",
   "dir": "rtl",
   "lang": "ku",
@@ -17,6 +17,5 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "productivity"],
-  "screenshots": []
+  "categories": ["business", "productivity"]
 }
