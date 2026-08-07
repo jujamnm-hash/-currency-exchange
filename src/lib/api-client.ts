@@ -209,4 +209,44 @@ export const api = {
     });
     return result ?? localDb.deleteLeave(id);
   },
+
+  async dailyWorks(filters?: { date?: string; employeeId?: string; year?: number; month?: number }) {
+    const params = new URLSearchParams();
+    if (filters?.date) params.set("date", filters.date);
+    if (filters?.employeeId) params.set("employeeId", filters.employeeId);
+    if (filters?.year) params.set("year", String(filters.year));
+    if (filters?.month) params.set("month", String(filters.month));
+    const qs = params.toString();
+    const path = qs ? `/api/daily-works?${qs}` : "/api/daily-works";
+    return (
+      (await tryApi<ReturnType<typeof localDb.getDailyWorks>>(path)) ?? localDb.getDailyWorks(filters)
+    );
+  },
+
+  async createDailyWork(data: Parameters<typeof localDb.createDailyWork>[0]) {
+    const result = await tryApi<ReturnType<typeof localDb.createDailyWork>>("/api/daily-works", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return result ?? localDb.createDailyWork(data);
+  },
+
+  async updateDailyWork(id: string, data: Parameters<typeof localDb.updateDailyWork>[1]) {
+    const result = await tryApi<ReturnType<typeof localDb.updateDailyWork>>("/api/daily-works", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return result ?? localDb.updateDailyWork(id, data);
+  },
+
+  async deleteDailyWork(id: string) {
+    const result = await tryApi<{ ok: boolean }>("/api/daily-works", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    return result ?? localDb.deleteDailyWork(id);
+  },
 };

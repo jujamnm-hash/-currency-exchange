@@ -10,6 +10,7 @@ import {
   Briefcase,
   GitBranch,
   CalendarDays,
+  ClipboardList,
   BarChart3,
   Settings,
 } from "lucide-react";
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/structure", label: "هەیکەل", icon: Network },
   { href: "/positions", label: "پۆست", icon: Briefcase },
   { href: "/org-chart", label: "نەخشە", icon: GitBranch },
+  { href: "/daily-works", label: "کاری ڕۆژانە", icon: ClipboardList },
   { href: "/leaves", label: "مۆڵەت", icon: CalendarDays },
   { href: "/leave-reports", label: "ڕاپۆرت", icon: BarChart3 },
   { href: "/settings", label: "ڕێکخستن", icon: Settings },
@@ -29,7 +31,7 @@ const navItems = [
 export function MobileNav() {
   const pathname = usePathname();
   const mobileItems = navItems.filter((item) =>
-    ["/dashboard", "/employees", "/leaves", "/leave-reports", "/org-chart"].includes(item.href)
+    ["/dashboard", "/employees", "/daily-works", "/leaves", "/org-chart"].includes(item.href)
   );
 
   return (

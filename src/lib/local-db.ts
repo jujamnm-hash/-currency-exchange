@@ -1,5 +1,5 @@
-const DB_KEY = "org_structure_db_v3";
-const OLD_DB_KEYS = ["org_structure_db_v2", "org_structure_db_v1"];
+const DB_KEY = "org_structure_db_v4";
+const OLD_DB_KEYS = ["org_structure_db_v3", "org_structure_db_v2", "org_structure_db_v1"];
 
 export interface Market {
   id: string;
@@ -61,12 +61,26 @@ export interface LeaveRecord {
   createdAt: string;
 }
 
+export interface DailyWork {
+  id: string;
+  employeeId: string;
+  marketId?: string | null;
+  date: string;
+  title: string;
+  description?: string;
+  hours: number;
+  year: number;
+  month: number;
+  createdAt: string;
+}
+
 interface DB {
   markets: Market[];
   departments: Department[];
   positions: Position[];
   employees: Employee[];
   leaves: LeaveRecord[];
+  dailyWorks: DailyWork[];
   settings: Record<string, string>;
 }
 
@@ -202,6 +216,7 @@ function defaultDB(): DB {
     positions,
     employees,
     leaves: [],
+    dailyWorks: [],
     settings: {
       org_name: "هەیکەلی ئیداری",
       org_subtitle: "سیستەمی ڕێکخستنی کارمەندان",
@@ -230,6 +245,7 @@ function load(): DB {
       positions: Position[];
       employees: Array<Record<string, unknown>>;
       leaves?: LeaveRecord[];
+      dailyWorks?: DailyWork[];
       settings: Record<string, string>;
     };
     const db: DB = {
@@ -239,6 +255,7 @@ function load(): DB {
       settings: parsed.settings || {},
       employees: (parsed.employees || []).map((e) => normalizeEmployee(e)),
       leaves: Array.isArray(parsed.leaves) ? parsed.leaves : [],
+      dailyWorks: Array.isArray(parsed.dailyWorks) ? parsed.dailyWorks : [],
     };
     localStorage.setItem(DB_KEY, JSON.stringify(db));
     return db;
@@ -342,6 +359,9 @@ export const localDb = {
       ...e,
       marketIds: e.marketIds.filter((mid) => mid !== id),
     }));
+    db.dailyWorks = db.dailyWorks.map((w) =>
+      w.marketId === id ? { ...w, marketId: null } : w
+    );
     save(db);
     return { ok: true };
   },
@@ -523,6 +543,7 @@ export const localDb = {
       .filter((e) => e.id !== id)
       .map((e) => (e.managerId === id ? { ...e, managerId: null } : e));
     db.leaves = db.leaves.filter((l) => l.employeeId !== id);
+    db.dailyWorks = db.dailyWorks.filter((w) => w.employeeId !== id);
     save(db);
     return { ok: true };
   },
@@ -703,6 +724,110 @@ export const localDb = {
           ),
         })),
     };
+  },
+
+  getDailyWorks(filters?: { date?: string; employeeId?: string; year?: number; month?: number }) {
+    const db = load();
+    let list = db.dailyWorks.slice();
+    const filterDate = filters?.date;
+    if (filterDate) list = list.filter((w) => w.date === filterDate.slice(0, 10));
+    if (filters?.employeeId) list = list.filter((w) => w.employeeId === filters.employeeId);
+    if (filters?.year) list = list.filter((w) => w.year === filters.year);
+    if (filters?.month) list = list.filter((w) => w.month === filters.month);
+    return list
+      .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+      .map((w) => ({
+        ...w,
+        employee: enrichEmployee(
+          db.employees.find((e) => e.id === w.employeeId) || {
+            id: w.employeeId,
+            name: "نەناسراو",
+            marketIds: [],
+            isActive: false,
+            createdAt: "",
+          },
+          db
+        ),
+        market: db.markets.find((m) => m.id === w.marketId) ?? null,
+      }));
+  },
+
+  createDailyWork(data: {
+    employeeId: string;
+    marketId?: string | null;
+    date: string;
+    title: string;
+    description?: string;
+    hours?: number;
+  }) {
+    const db = load();
+    if (!db.employees.some((e) => e.id === data.employeeId)) {
+      throw new Error("کارمەند نەدۆزرایەوە");
+    }
+    const date = data.date.slice(0, 10);
+    const [y, m] = date.split("-").map(Number);
+    const work: DailyWork = {
+      id: uid(),
+      employeeId: data.employeeId,
+      marketId: data.marketId || null,
+      date,
+      title: data.title.trim(),
+      description: data.description,
+      hours: Number(data.hours) || 0,
+      year: y,
+      month: m,
+      createdAt: new Date().toISOString(),
+    };
+    db.dailyWorks.push(work);
+    save(db);
+    return {
+      ...work,
+      employee: enrichEmployee(db.employees.find((e) => e.id === work.employeeId)!, db),
+      market: db.markets.find((m) => m.id === work.marketId) ?? null,
+    };
+  },
+
+  updateDailyWork(
+    id: string,
+    data: Partial<{
+      employeeId: string;
+      marketId: string | null;
+      date: string;
+      title: string;
+      description: string;
+      hours: number;
+    }>
+  ) {
+    const db = load();
+    const idx = db.dailyWorks.findIndex((w) => w.id === id);
+    if (idx < 0) throw new Error("تۆماری کار نەدۆزرایەوە");
+    const current = db.dailyWorks[idx];
+    const date = data.date ? data.date.slice(0, 10) : current.date;
+    const [y, m] = date.split("-").map(Number);
+    db.dailyWorks[idx] = {
+      ...current,
+      ...data,
+      id,
+      date,
+      title: data.title !== undefined ? data.title.trim() : current.title,
+      hours: data.hours !== undefined ? Number(data.hours) || 0 : current.hours,
+      year: y,
+      month: m,
+    };
+    save(db);
+    const work = db.dailyWorks[idx];
+    return {
+      ...work,
+      employee: enrichEmployee(db.employees.find((e) => e.id === work.employeeId)!, db),
+      market: db.markets.find((m) => m.id === work.marketId) ?? null,
+    };
+  },
+
+  deleteDailyWork(id: string) {
+    const db = load();
+    db.dailyWorks = db.dailyWorks.filter((w) => w.id !== id);
+    save(db);
+    return { ok: true };
   },
 
   reset() {

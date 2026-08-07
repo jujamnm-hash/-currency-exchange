@@ -20,6 +20,7 @@ model Market {
   updatedAt   DateTime @updatedAt
 
   employees Employee[] @relation("EmployeeMarkets")
+  dailyWorks DailyWork[]
 }
 
 model Department {
@@ -76,6 +77,7 @@ model Employee {
   manager    Employee?     @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
   reports    Employee[]    @relation("EmployeeManager")
   leaves     LeaveRecord[]
+  dailyWorks DailyWork[]
 }
 
 enum LeaveKind {
@@ -99,6 +101,27 @@ model LeaveRecord {
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([employeeId, year, month])
+  @@index([year, month])
+}
+
+model DailyWork {
+  id          String   @id @default(cuid())
+  employeeId  String
+  marketId    String?
+  date        DateTime @db.Date
+  title       String
+  description String?
+  hours       Float    @default(0)
+  year        Int
+  month       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  market   Market?  @relation(fields: [marketId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, date])
+  @@index([date])
   @@index([year, month])
 }
 
