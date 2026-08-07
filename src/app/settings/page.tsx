@@ -56,12 +56,13 @@ export default function SettingsPage() {
       </div>
 
       <div className="card mt-4 max-w-xl">
-        <h3 className="mb-2 font-bold text-slate-800">داتای ناوخۆیی</h3>
+        <h3 className="mb-2 font-bold text-slate-800">داتا</h3>
         <p className="mb-3 text-sm text-slate-500">
-          داتاکان لەسەر ئەم ئامێرە پاشەکەوت دەکرێن (localStorage). دەتوانیت بیانگەڕێنیتەوە بۆ نموونەی سەرەتایی.
+          لەسەر Vercel داتاکان لە داتابەیسی Neon Postgres پاشەکەوت دەبن. بۆ کارکردنی ناوخۆیی بەبێ سێرڤەر
+          دەتوانیت داتای ناوخۆیی ڕیسێت بکەیت.
         </p>
         <button onClick={resetData} className="btn-danger">
-          ڕیسێتی داتا
+          ڕیسێتی داتای ناوخۆیی
         </button>
       </div>
     </PageLayout>

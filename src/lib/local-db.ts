@@ -230,8 +230,13 @@ function save(db: DB) {
 }
 
 export function useLocalMode() {
-  if (typeof window === "undefined") return true;
-  return localStorage.getItem("org_force_api") !== "1";
+  if (typeof window === "undefined") return false;
+  // Force localStorage only when explicitly requested
+  if (localStorage.getItem("org_force_local") === "1") return true;
+  // Prefer API/database when enabled (Vercel production)
+  if (process.env.NEXT_PUBLIC_USE_API === "true") return false;
+  // Default: try API first (useLocalMode false), fall back in tryApi
+  return false;
 }
 
 function enrichEmployee(e: Employee, db: DB) {

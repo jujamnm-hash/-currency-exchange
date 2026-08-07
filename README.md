@@ -17,6 +17,8 @@
 
 بڕۆ بۆ: https://heikali-edari.vercel.app/dashboard
 
+داتابەیس: **Neon Postgres** لەسەر Vercel (داتا لە سێرڤەر پاشەکەوت دەبێت).
+
 ## دامەزراندن لەسەر Vercel
 
 ### خێراترین ڕێگا (یەک کلیک)
