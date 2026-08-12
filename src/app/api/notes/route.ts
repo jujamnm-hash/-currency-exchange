@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { ensureSchema } from "@/lib/db-bootstrap";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ const createSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    await ensureSchema();
     const deviceId = req.nextUrl.searchParams.get("deviceId");
     const notes = await prisma.spatialNote.findMany({
       where: deviceId ? { deviceId } : undefined,
@@ -38,6 +40,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureSchema();
     const body = await req.json();
     const data = createSchema.parse(body);
 

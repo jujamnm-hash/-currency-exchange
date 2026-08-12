@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { ensureSchema } from "@/lib/db-bootstrap";
 import { distanceMeters, geoBoundingBox, headingDelta } from "@/lib/geo";
 import {
   colorDistance,
@@ -27,6 +28,7 @@ const matchSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureSchema();
     const data = matchSchema.parse(await req.json());
     const radiusM = data.radiusM ?? 60;
     const minScore = data.minScore ?? 42;

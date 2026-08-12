@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ensureSchema } from "@/lib/db-bootstrap";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json(
+        {
+          ok: false,
+          database: "missing",
+          error: "DATABASE_URL دانەنراوە لە Vercel Environment Variables",
+        },
+        { status: 503 }
+      );
+    }
+    await ensureSchema();
     const count = await prisma.spatialNote.count();
     return NextResponse.json({
       ok: true,

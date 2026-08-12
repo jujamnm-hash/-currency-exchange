@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { ensureSchema } from "@/lib/db-bootstrap";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ const updateSchema = z.object({
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, ctx: Ctx) {
+  await ensureSchema();
   const { id } = await ctx.params;
   const note = await prisma.spatialNote.findUnique({ where: { id } });
   if (!note) {
@@ -23,6 +25,7 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
 
 export async function PATCH(req: NextRequest, ctx: Ctx) {
   try {
+    await ensureSchema();
     const { id } = await ctx.params;
     const body = updateSchema.parse(await req.json());
     const existing = await prisma.spatialNote.findUnique({ where: { id } });
@@ -51,6 +54,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
 
 export async function DELETE(req: NextRequest, ctx: Ctx) {
   try {
+    await ensureSchema();
     const { id } = await ctx.params;
     const deviceId = req.nextUrl.searchParams.get("deviceId");
     if (!deviceId) {
