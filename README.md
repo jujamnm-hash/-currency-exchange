@@ -16,28 +16,21 @@
 - **PWA** — Add to Home Screen لە مۆبایل
 - کامێرا (`getUserMedia`) + Geolocation + DeviceOrientation
 
-## دامەزراندن لەسەر Vercel (سیستەم + داتابەیس)
+## 🌐 لینکی زیندوو (دامەزراوە)
 
-### ١) داتابەیس
+**ئەپ:** https://heikali-edari-jujamnm-hashs-projects.vercel.app  
 
-لە [Vercel Dashboard](https://vercel.com) → **Storage** → **Create Database** → **Postgres**  
-یان Neon / Supabase. `DATABASE_URL` کۆپی بکە.
+**کامێرا:** https://heikali-edari-jujamnm-hashs-projects.vercel.app/scan  
 
-### ٢) پرۆژە
+**تاقیکردنی داتابەیس:** https://heikali-edari-jujamnm-hashs-projects.vercel.app/api/health  
 
-1. ئەم repo ـە ببەستە بە Vercel
-2. Environment Variable زیاد بکە:
-   ```
-   DATABASE_URL=postgresql://...
-   ```
-3. **Deploy**
+داتابەیس بەستراوە (`ok: true`). لە مۆبایل لینکەکە بکەرەوە → مۆڵەتی کامێرا و GPS بدە.
 
-`vercel-build` خۆکارانە `prisma db push` جێبەجێ دەکات بۆ دروستکردنی خشتەکان.
+## دامەزراندنەوە لەسەر Vercel
 
-### ٣) تاقیکردنەوە
-
-- `https://YOUR-APP.vercel.app/api/health` → دەبێت `{"ok":true,"database":"connected"}` بگەڕێنێتەوە
-- لە **مۆبایل** (HTTPS) بڕۆ بۆ `/scan`، مۆڵەتی کامێرا و شوێن بدە
+1. [Vercel](https://vercel.com) → Storage → Postgres → بە پرۆژەکە ببەستە (`DATABASE_URL`)
+2. Deploy بکە — خشتەکان لە یەکەم داواکاری API خۆکار دروست دەبن
+3. `/api/health` بپشکنە
 
 ## گەشەپێدانی local
 
