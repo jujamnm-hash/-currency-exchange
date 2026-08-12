@@ -1,156 +1,72 @@
-# 🚗 غەسلی هەولێر | Ghassle Hawler Car Wash System
+# نیشانە | Nishana — تێبینی AR لەڕێی کامێرا
 
-سیستەمێکی تەواوی بەڕێوەبردنی غەسلی سەیارە بە ستانداردی جیهانی، گونجاو بۆ مۆبایل و ئامادە بۆ دامەزراندن لەسەر Vercel.
+سیستەمێکی پڕۆفیشناڵ: کامێرای مۆبایلەکەت بخە سەر هەر شتێک، تێبینی بنووسە، و کاتێ دووبارە هەمان شوێن/شت دەبینیتەوە نوسینەکەت پیشان دەدات.
 
-## ✨ تایبەتمەندییەکان
+## چۆن کار دەکات
 
-### بەڕێوەبردنی داواکاری
-- زیادکردنی داواکاری نوێ بە خێرایی
-- ڕیزی چاوەڕوانی بە شوێنکەوتنی قۆناغەکان
-- ٨ قۆناغی ستاندارد: چاوەڕوانی → تۆمار → غەسڵ → وشککردن → وردەکاری → پشکنین → ئامادە → تەواو
+1. **جێگیرکردن** — کامێرا + GPS + ئاراستەی ئامێر + نیشانەی بینراو (dHash و پرۆفایلی ڕەنگ) پاشەکەوت دەکرێت لەگەڵ تێبینییەکە.
+2. **گەڕانەوە** — کاتێ کامێراکە دەخەیتە سەر هەمان شت، سیستەم کاندیدە نزیکەکان لە داتابەیس دەعێنێت و بە هاوشێوەیی بینراو + دووری + ئاراستە دەیانپێوانێت.
+3. **پیشاندان** — تێبینییەکە وەک overlay لەسەر کامێرا دەردەکەوێت.
 
-### خزمەتگوزارییەکان
-- ٨ جۆری خزمەتگوزاری (سادە، تەواو، پڕیمیەم، ناوەوە، واکس، ئەنجام، ژێرەوە، پەنجەرە)
-- ٥ زیادەی داخڵ (بۆنخۆش، تایەر، داشبۆرد، ئارۆما، قاپ)
-- نرخی جیاواز بەپێی جۆری سەیارە (سەدان، SUV، بارهەڵگر، ڤان، ماتۆرسکیل، لوکس)
+## تەکنەلۆژیا
 
-### کڕیار و ئەندامێتی
-- تۆمارکردنی کڕیار و سەیارەکان
-- سیستەمی خاڵی دڵسۆزی
-- پلانی ئەندامێتی مانگانە
+- **Next.js 15** (App Router) — فرۆنت و API
+- **PostgreSQL** لە **Vercel Postgres / Neon**
+- **Prisma** — ORM
+- **PWA** — Add to Home Screen لە مۆبایل
+- کامێرا (`getUserMedia`) + Geolocation + DeviceOrientation
 
-### کات و ڕاپۆرت
-- بەڕێوەبردنی کاتی پێشوەختە
-- ڕاپۆرتی داهات (ڕۆژانە، هەفتانە، مانگانە)
-- شیکردنەوەی خزمەتگوزاری و جۆری سەیارە
+## دامەزراندن لەسەر Vercel (سیستەم + داتابەیس)
 
-### مۆبایل و PWA
-- دیزاینی Mobile-First
-- دەتوانیت وەک ئەپ لە Home Screen دابنێیت
-- ناوچەی خوارەوەی گەڕان بۆ مۆبایل
+### ١) داتابەیس
 
----
+لە [Vercel Dashboard](https://vercel.com) → **Storage** → **Create Database** → **Postgres**  
+یان Neon / Supabase. `DATABASE_URL` کۆپی بکە.
 
-## 🌐 لینکی ئەپ (ئامادەیە ئێستا!)
+### ٢) پرۆژە
 
-### GitHub Pages — کار دەکات لە مۆبایل:
-
-**https://jujamnm-hash.github.io/-currency-exchange/dashboard/**
-
-- داتا لەسەر مۆبایلەکەت پارێزراو دەبێت (localStorage)
-- وەک ئەپ: **Add to Home Screen**
-
-### Vercel (ئەگەر داتابەیسی سێرڤەر دەتەوێت):
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjujamnm-hash%2F-currency-exchange&project-name=ghassle-hawler&env=DATABASE_URL&envDescription=PostgreSQL%20connection%20string%20from%20Vercel%20Postgres%20or%20Neon)
-
----
-
-## 🚀 دامەزراندن لەسەر Vercel (وردەکاری)
-
-### هەنگاو ١: داتابەیس دروست بکە
-
-لە [Vercel Dashboard](https://vercel.com) → Storage → Create Database → **Postgres**
-
-یان لە [Neon](https://neon.tech) / [Supabase](https://supabase.com) داتابەیسێکی بەخۆڕایی دروست بکە.
-
-### هەنگاو ٢: پڕۆژەکە بەرز بکەرەوە
-
-1. ئەم repository ـە بەرز بکەرەوە بۆ GitHub
-2. بڕۆ بۆ [vercel.com/new](https://vercel.com/new)
-3. Repository هەڵبژێرە
-4. لە **Environment Variables** زیاد بکە:
+1. ئەم repo ـە ببەستە بە Vercel
+2. Environment Variable زیاد بکە:
    ```
    DATABASE_URL=postgresql://...
    ```
-5. کلیک لە **Deploy** بکە
+3. **Deploy**
 
-### هەنگاو ٣: داتابەیس ڕێکبخە
+`vercel-build` خۆکارانە `prisma db push` جێبەجێ دەکات بۆ دروستکردنی خشتەکان.
 
-دوای دامەزراندن، لە Vercel Terminal یان لە local:
+### ٣) تاقیکردنەوە
 
-```bash
-npx prisma db push
-npx tsx prisma/seed.ts
-```
+- `https://YOUR-APP.vercel.app/api/health` → دەبێت `{"ok":true,"database":"connected"}` بگەڕێنێتەوە
+- لە **مۆبایل** (HTTPS) بڕۆ بۆ `/scan`، مۆڵەتی کامێرا و شوێن بدە
 
----
-
-## 💻 گەشەپێدان لە Local
+## گەشەپێدانی local
 
 ```bash
-# دامەزراندنی پاکێجەکان
 npm install
-
-# ڕێکخستنی .env
 cp .env.example .env
 # DATABASE_URL بنووسە
-
-# داتابەیس
 npm run db:setup
-
-# دەستپێکردن
 npm run dev
 ```
 
-بڕۆ بۆ: http://localhost:3000
+تێبینی: کامێرا و GPS لە localhost سنووردارن؛ باشترین تاقیکردنەوە لەسەر مۆبایل بە لینکی Vercel ـە.
+
+## API
+
+| ڕێگا | وەسف |
+|------|------|
+| `GET /api/health` | پشکنینی داتابەیس |
+| `GET /api/notes?deviceId=` | لیستی تێبینییەکان |
+| `POST /api/notes` | دروستکردنی نیشانە |
+| `POST /api/match` | گەڕان بە fingerprint + GPS |
+| `DELETE /api/notes/:id?deviceId=` | سڕینەوە |
+
+## پەڕەکان
+
+- `/` — سەرەتا
+- `/scan` — کامێرای AR
+- `/notes` — لیستی تێبینییەکان
 
 ---
 
-## 📱 بەکارهێنان وەک ئەپ لە مۆبایل
-
-1. لینکی Vercel لە وێبگەڕی مۆبایل بکەرەوە
-2. **iOS**: Share → Add to Home Screen
-3. **Android**: Menu → Add to Home Screen / Install App
-
----
-
-## 🗂️ پێکهاتەی پڕۆژە
-
-```
-ghassle-hawler/
-├── prisma/
-│   ├── schema.prisma    # مۆدێلی داتابەیس
-│   └── seed.ts          # داتای سەرەتایی
-├── public/
-│   ├── manifest.json    # PWA
-│   └── icon.svg
-├── src/
-│   ├── app/
-│   │   ├── api/         # API Routes
-│   │   ├── dashboard/   # داشبۆرد
-│   │   ├── queue/       # ڕیز
-│   │   ├── new-order/   # داواکاری نوێ
-│   │   ├── customers/   # کڕیارەکان
-│   │   ├── appointments/# کاتەکان
-│   │   ├── services/    # خزمەتگوزارییەکان
-│   │   ├── reports/     # ڕاپۆرت
-│   │   └── settings/    # ڕێکخستن
-│   ├── components/
-│   └── lib/
-└── vercel.json
-```
-
----
-
-## 🔧 تەکنەلۆژیا
-
-- **Next.js 15** - React Framework
-- **Prisma** - ORM بۆ داتابەیس
-- **PostgreSQL** - داتابەیس
-- **Tailwind CSS** - ستایل
-- **TypeScript** - جۆری پارێزراو
-- **PWA** - ئەپ لە مۆبایل
-
----
-
-## 📞 زانیاری دوکان (سەرەتایی)
-
-- **ناو:** غەسلی هەولێر
-- **ناونیشان:** هەولێر، کوردستان
-- **کاتەکانی کار:** 08:00 - 22:00
-- **دراو:** دیناری عێراقی (IQD)
-
----
-
-دروستکراوە بە ❤️ بۆ غەسلی هەولێر
+دروستکراوە بۆ بەکارهێنانی ڕاستەوخۆ لەسەر مۆبایل لەڕێی وێبگەڕ (PWA).

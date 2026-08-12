@@ -1,14 +1,14 @@
 {
-  "name": "غەسلی هەولێر",
-  "short_name": "غەسلی هەولێر",
-  "description": "سیستەمی بەڕێوەبردنی غەسلی سەیارە - Ghassle Hawler Car Wash",
-  "start_url": "/dashboard",
+  "name": "نیشانە — Nishana AR Notes",
+  "short_name": "نیشانە",
+  "description": "تێبینی لەسەر شتەکان لەڕێی کامێرای مۆبایل",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1d4ed8",
-  "orientation": "portrait-primary",
-  "dir": "rtl",
+  "orientation": "portrait",
+  "background_color": "#070B12",
+  "theme_color": "#0B1220",
   "lang": "ku",
+  "dir": "rtl",
   "icons": [
     {
       "src": "/icon.svg",
@@ -16,7 +16,5 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ],
-  "categories": ["business", "productivity"],
-  "screenshots": []
+  ]
 }

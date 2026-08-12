@@ -5,30 +5,53 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: "#eff6ff",
-          100: "#dbeafe",
-          200: "#bfdbfe",
-          300: "#93c5fd",
-          400: "#60a5fa",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
-          800: "#1e40af",
-          900: "#1e3a8a",
-          950: "#172554",
+        ink: {
+          950: "#070B12",
+          900: "#0B1220",
+          800: "#121A2B",
+          700: "#1A2438",
+          600: "#243049",
         },
-        accent: {
-          400: "#22d3ee",
-          500: "#06b6d4",
-          600: "#0891b2",
+        ember: {
+          300: "#F0C48A",
+          400: "#E8A35C",
+          500: "#D4893A",
+          600: "#B86F28",
+        },
+        mist: {
+          100: "#F3F0E8",
+          200: "#D9D4C8",
+          400: "#9A9486",
+          500: "#6F6A5E",
         },
       },
       fontFamily: {
-        sans: ["var(--font-noto)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "serif"],
+        sans: ["var(--font-body)", "system-ui", "sans-serif"],
+      },
+      keyframes: {
+        "reticle-pulse": {
+          "0%, 100%": { opacity: "0.55", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.04)" },
+        },
+        "note-rise": {
+          "0%": { opacity: "0", transform: "translateY(18px) scale(0.96)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "scan-line": {
+          "0%": { transform: "translateY(-100%)" },
+          "100%": { transform: "translateY(100%)" },
+        },
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(24px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
-        "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "reticle-pulse": "reticle-pulse 2.4s ease-in-out infinite",
+        "note-rise": "note-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "scan-line": "scan-line 3.2s linear infinite",
+        "fade-up": "fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both",
       },
     },
   },
