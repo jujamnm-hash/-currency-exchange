@@ -41,5 +41,5 @@ jobs:
       - name: Secrets not configured
         if: env.VERCEL_ORG_ID == '' || env.VERCEL_PROJECT_ID == ''
         run: |
-          echo "⚠️ Vercel secrets not configured."
-          echo "Use one-click deploy: https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjujamnm-hash%2F-currency-exchange&project-name=ghassle-hawler"
+          echo "Vercel secrets not configured in GitHub."
+          echo "Deploy via: https://vercel.com/new — set DATABASE_URL from Vercel Postgres."
