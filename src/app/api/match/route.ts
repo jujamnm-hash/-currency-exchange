@@ -12,8 +12,10 @@ import {
   isConfidentMatch,
   matchScore,
   noteHashes,
+  orbSimilarity,
   parseColorProfile,
   rejectAmbiguous,
+  structureSimilarity,
 } from "@/lib/vision";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +36,8 @@ const matchSchema = z.object({
     patches: z.array(z.array(z.number())).max(8).optional(),
     hog: z.array(z.number()).max(64).optional(),
     brief: z.string().optional(),
+    orb: z.array(z.string()).max(24).optional(),
+    structure: z.array(z.number()).max(32).optional(),
   }),
   deviceId: z.string().optional(),
   radiusM: z.number().min(10).max(2000).optional(),
@@ -47,7 +51,7 @@ export async function POST(req: NextRequest) {
     const data = matchSchema.parse(await req.json());
     const visualOnly = Boolean(data.visualOnly);
     const radiusM = data.radiusM ?? (visualOnly ? 2000 : 150);
-    const minScore = data.minScore ?? 72;
+    const minScore = data.minScore ?? 76;
 
     const queryHashes = Array.from(
       new Set(
@@ -116,14 +120,27 @@ export async function POST(req: NextRequest) {
           data.colorProfile.brief && profile.brief
             ? hammingDistanceHex(data.colorProfile.brief, profile.brief)
             : undefined;
+        const orbSim =
+          data.colorProfile.orb?.length && profile.orb?.length
+            ? orbSimilarity(data.colorProfile.orb, profile.orb)
+            : undefined;
+        const structureSim =
+          data.colorProfile.structure?.length && profile.structure?.length
+            ? structureSimilarity(
+                data.colorProfile.structure,
+                profile.structure
+              )
+            : undefined;
 
         // دەروازەی AND سەرەتایی
-        if (consensus.best > 9) return null;
-        if (cDist > 0.2) return null;
-        if (hasPatch && patchScore.combined < 0.8) return null;
-        if (profile.phash && phashDist > 11) return null;
-        if (profile.hog?.length && hogSim < 0.72) return null;
-        if (briefDist != null && briefDist > 18) return null;
+        if (consensus.best > 8) return null;
+        if (cDist > 0.16) return null;
+        if (hasPatch && patchScore.combined < 0.82) return null;
+        if (profile.phash && phashDist > 9) return null;
+        if (profile.hog?.length && hogSim < 0.76) return null;
+        if (briefDist != null && briefDist > 14) return null;
+        if (orbSim != null && orbSim < 0.4) return null;
+        if (structureSim != null && structureSim < 0.7) return null;
 
         const score = matchScore({
           hashDist: consensus.best,
@@ -138,6 +155,9 @@ export async function POST(req: NextRequest) {
           patchSSIM: patchScore.ssim,
           phashDist,
           hogSim,
+          orbSim,
+          structureSim,
+          briefDist,
         });
 
         if (
@@ -155,6 +175,8 @@ export async function POST(req: NextRequest) {
             hogSim,
             hasPatch,
             briefDist,
+            orbSim,
+            structureSim,
           })
         ) {
           return null;
@@ -169,6 +191,11 @@ export async function POST(req: NextRequest) {
           patchSim: Math.round(patchScore.combined * 1000) / 1000,
           phashDist,
           hogSim: Math.round(hogSim * 1000) / 1000,
+          orbSim: orbSim != null ? Math.round(orbSim * 1000) / 1000 : undefined,
+          structureSim:
+            structureSim != null
+              ? Math.round(structureSim * 1000) / 1000
+              : undefined,
         };
       })
       .filter(Boolean)
@@ -178,7 +205,7 @@ export async function POST(req: NextRequest) {
       [k: string]: unknown;
     }>;
 
-    const matches = rejectAmbiguous(scored, 15).slice(0, 2);
+    const matches = rejectAmbiguous(scored, 18).slice(0, 1);
 
     return NextResponse.json({
       matches,
@@ -186,7 +213,7 @@ export async function POST(req: NextRequest) {
       radiusM,
       visualOnly,
       minScore,
-      mode: "blur-scale-enrich-v4",
+      mode: "orb-structure-lock-v5",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -24,6 +24,8 @@ const createSchema = z.object({
     patches: z.array(z.array(z.number())).max(8).optional(),
     hog: z.array(z.number()).max(64).optional(),
     brief: z.string().optional(),
+    orb: z.array(z.string()).max(24).optional(),
+    structure: z.array(z.number()).max(32).optional(),
   }),
   thumbnail: z.string().nullable().optional(),
   deviceId: z.string().min(8).max(80),

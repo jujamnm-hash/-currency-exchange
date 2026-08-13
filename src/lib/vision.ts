@@ -15,6 +15,10 @@ export type ColorProfile = {
   hog?: number[];
   /** BRIEF-like ١٦ hex */
   brief?: string;
+  /** وەسفی گۆشە (ORB-like) — تا ١٢ × ٨ hex */
+  orb?: string[];
+  /** واژۆی پێکهاتە (١٦ نرخ) */
+  structure?: number[];
 };
 
 export type VisualFingerprint = {
@@ -138,6 +142,8 @@ export function captureFingerprint(
 
   const sharpness = measureSharpness(patch32, 32);
   colorProfile.brief = computeBrief(patch);
+  colorProfile.orb = computeOrbDescriptors(regionData, regionSize);
+  colorProfile.structure = computeStructureSignature(regionData, regionSize);
 
   return {
     imageHash: uniqueHashes[0],
@@ -159,7 +165,7 @@ export async function captureMultiFrameFingerprint(
     if (video.readyState < 2) continue;
     const fp = captureFingerprint(video, { thumbnailMax: 120, rich: true });
     // فڕێدانی وێنەی لێڵ
-    if ((fp.sharpness ?? 0) < 18) continue;
+    if ((fp.sharpness ?? 0) < 22) continue;
     collected.push(fp);
   }
   if (collected.length < 3) {
@@ -247,6 +253,10 @@ export function mergeFingerprints(list: VisualFingerprint[]): VisualFingerprint 
     brief: list.map((f) => f.colorProfile.brief).filter(Boolean)[
       Math.floor(list.length / 2)
     ] as string | undefined,
+    orb: mergeOrbLists(list.map((f) => f.colorProfile.orb).filter(Boolean) as string[][]),
+    structure: averageVectors(
+      list.map((f) => f.colorProfile.structure).filter((s): s is number[] => Boolean(s?.length))
+    ),
   };
 
   return {
@@ -254,7 +264,34 @@ export function mergeFingerprints(list: VisualFingerprint[]): VisualFingerprint 
     colorProfile: profile,
     thumbnail: list[Math.floor(list.length / 2)].thumbnail,
     hashes: allHashes,
+    sharpness:
+      list.reduce((a, f) => a + (f.sharpness ?? 0), 0) / (list.length || 1),
   };
+}
+
+function averageVectors(list: number[][]): number[] | undefined {
+  if (!list.length) return undefined;
+  const len = list[0].length;
+  const out = new Array(len).fill(0);
+  for (const v of list) {
+    for (let i = 0; i < len; i++) out[i] += v[i] ?? 0;
+  }
+  return out.map((x) => Math.round((x / list.length) * 1000) / 1000);
+}
+
+function mergeOrbLists(lists: string[][]): string[] | undefined {
+  if (!lists.length) return undefined;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const list of lists) {
+    for (const d of list) {
+      if (seen.has(d)) continue;
+      seen.add(d);
+      out.push(d);
+      if (out.length >= 16) return out;
+    }
+  }
+  return out.length ? out : undefined;
 }
 
 function rgbaToGray(data: Uint8ClampedArray, size: number): number[] {
@@ -447,6 +484,141 @@ function computeBrief(patch: number[]): string {
   return hex;
 }
 
+/** گۆشە + وەسف (ORB-like) لەسەر وێنەی ناوەند */
+function computeOrbDescriptors(
+  data: Uint8ClampedArray,
+  size: number,
+  count = 10
+): string[] {
+  const gray: number[] = [];
+  for (let i = 0; i < size * size; i++) {
+    const o = i * 4;
+    gray.push(luminance(data[o], data[o + 1], data[o + 2]));
+  }
+  const mag: number[] = new Array(size * size).fill(0);
+  for (let y = 1; y < size - 1; y++) {
+    for (let x = 1; x < size - 1; x++) {
+      const gx = gray[y * size + x + 1] - gray[y * size + x - 1];
+      const gy = gray[(y + 1) * size + x] - gray[(y - 1) * size + x];
+      mag[y * size + x] = Math.hypot(gx, gy);
+    }
+  }
+  type Corner = { x: number; y: number; m: number };
+  const corners: Corner[] = [];
+  for (let y = 3; y < size - 3; y++) {
+    for (let x = 3; x < size - 3; x++) {
+      const m = mag[y * size + x];
+      if (m < 28) continue;
+      let localMax = true;
+      for (let dy = -1; dy <= 1 && localMax; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          if (mag[(y + dy) * size + (x + dx)] > m) {
+            localMax = false;
+            break;
+          }
+        }
+      }
+      if (localMax) corners.push({ x, y, m });
+    }
+  }
+  corners.sort((a, b) => b.m - a.m);
+
+  const picked: Corner[] = [];
+  for (const c of corners) {
+    if (picked.some((p) => Math.hypot(p.x - c.x, p.y - c.y) < 4)) continue;
+    picked.push(c);
+    if (picked.length >= count) break;
+  }
+
+  const descs: string[] = [];
+  for (const c of picked) {
+    let bits = "";
+    for (let i = 0; i < 32; i++) {
+      const ax = ((i * 7) % 7) - 3;
+      const ay = ((i * 11) % 7) - 3;
+      const bx = ((i * 13 + 3) % 7) - 3;
+      const by = ((i * 17 + 5) % 7) - 3;
+      const va = gray[(c.y + ay) * size + (c.x + ax)] ?? 0;
+      const vb = gray[(c.y + by) * size + (c.x + bx)] ?? 0;
+      bits += va < vb ? "1" : "0";
+    }
+    let hex = "";
+    for (let i = 0; i < 32; i += 4) {
+      hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
+    }
+    descs.push(hex);
+  }
+  return descs;
+}
+
+/** واژۆی پێکهاتە: ٤ بازنە × ٤ گۆشە */
+function computeStructureSignature(
+  data: Uint8ClampedArray,
+  size: number
+): number[] {
+  const cx = (size - 1) / 2;
+  const cy = (size - 1) / 2;
+  const maxR = Math.hypot(cx, cy) || 1;
+  const bins = new Array(16).fill(0);
+  const counts = new Array(16).fill(0);
+  for (let y = 1; y < size - 1; y++) {
+    for (let x = 1; x < size - 1; x++) {
+      const o = (y * size + x) * 4;
+      const L = luminance(data[o], data[o + 1], data[o + 2]);
+      const R = luminance(data[o + 4], data[o + 5], data[o + 6]);
+      const D = luminance(
+        data[((y + 1) * size + x) * 4],
+        data[((y + 1) * size + x) * 4 + 1],
+        data[((y + 1) * size + x) * 4 + 2]
+      );
+      const edge = (Math.abs(L - R) + Math.abs(L - D)) / 255;
+      const dx = x - cx;
+      const dy = y - cy;
+      const r = Math.hypot(dx, dy) / maxR;
+      const ring = Math.min(3, Math.floor(r * 4));
+      let ang = (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI);
+      if (ang >= 1) ang = 0;
+      const sector = Math.min(3, Math.floor(ang * 4));
+      const idx = ring * 4 + sector;
+      bins[idx] += edge;
+      counts[idx] += 1;
+    }
+  }
+  const raw = bins.map((v, i) => v / (counts[i] || 1));
+  const norm = Math.hypot(...raw) || 1;
+  return raw.map((v) => Math.round((v / norm) * 1000) / 1000);
+}
+
+/** ڕێژەی هاوشێوەیی ORB (٠–١) */
+export function orbSimilarity(a?: string[], b?: string[]): number {
+  if (!a?.length || !b?.length) return 0.5;
+  let good = 0;
+  for (const qa of a) {
+    let best = 64;
+    for (const sb of b) {
+      best = Math.min(best, hammingDistanceHex(qa, sb));
+    }
+    if (best <= 6) good += 1;
+  }
+  return Math.round((good / a.length) * 1000) / 1000;
+}
+
+export function structureSimilarity(a?: number[], b?: number[]): number {
+  if (!a?.length || !b?.length) return 0.5;
+  const len = Math.min(a.length, b.length);
+  let dot = 0,
+    na = 0,
+    nb = 0;
+  for (let i = 0; i < len; i++) {
+    dot += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  const cos = dot / (Math.sqrt(na * nb) || 1);
+  return Math.max(0, Math.min(1, (cos + 1) / 2));
+}
+
 export type CaptureQuality = {
   ok: boolean;
   sharpness: number;
@@ -463,7 +635,7 @@ export function assessCaptureQuality(fp: VisualFingerprint): CaptureQuality {
   const score = Math.round(
     (sharpScore * 0.55 + (hasPatch ? 0.25 : 0) + (hasPhash ? 0.2 : 0)) * 100
   );
-  if (sharpness < 18) {
+  if (sharpness < 22) {
     return {
       ok: false,
       sharpness,
@@ -471,7 +643,7 @@ export function assessCaptureQuality(fp: VisualFingerprint): CaptureQuality {
       message: "وێنە لێڵە — ڕوونایی زیاد بکە یان جێگیر بمێنەوە",
     };
   }
-  if (sharpness < 28) {
+  if (sharpness < 32) {
     return {
       ok: false,
       sharpness,
@@ -783,26 +955,36 @@ export function matchScore(opts: {
   patchSSIM?: number;
   phashDist?: number;
   hogSim?: number;
+  orbSim?: number;
+  structureSim?: number;
+  briefDist?: number;
 }): number {
-  const hashScore = Math.max(0, 1 - opts.hashDist / 12);
+  const hashScore = Math.max(0, 1 - opts.hashDist / 11);
   const avgScore =
-    opts.avgHashDist != null ? Math.max(0, 1 - opts.avgHashDist / 14) : hashScore;
-  const colorScore = Math.max(0, 1 - opts.colorDist / 0.22);
+    opts.avgHashDist != null ? Math.max(0, 1 - opts.avgHashDist / 13) : hashScore;
+  const colorScore = Math.max(0, 1 - opts.colorDist / 0.2);
   const patchNcc = opts.patchSim ?? 0;
   const patchS = opts.patchSSIM ?? patchNcc;
   const patchScore = patchNcc * 0.55 + patchS * 0.45;
   const phashScore =
-    opts.phashDist != null ? Math.max(0, 1 - opts.phashDist / 12) : 0;
+    opts.phashDist != null ? Math.max(0, 1 - opts.phashDist / 11) : 0;
   const hogScore = opts.hogSim ?? 0.5;
+  const orbScore = opts.orbSim ?? 0.5;
+  const structScore = opts.structureSim ?? 0.5;
+  const briefScore =
+    opts.briefDist != null ? Math.max(0, 1 - opts.briefDist / 16) : 0.5;
 
-  // پاتچ و pHash گرنگترینن بۆ ناسنامەی شت
+  // پاتچ + ORB + pHash گرنگترینن بۆ ناسنامەی شت
   const combined =
-    patchScore * 0.34 +
-    phashScore * 0.2 +
-    hashScore * 0.18 +
-    avgScore * 0.08 +
-    colorScore * 0.1 +
-    hogScore * 0.1;
+    patchScore * 0.28 +
+    phashScore * 0.16 +
+    orbScore * 0.14 +
+    hashScore * 0.12 +
+    avgScore * 0.06 +
+    colorScore * 0.07 +
+    hogScore * 0.08 +
+    structScore * 0.05 +
+    briefScore * 0.04;
 
   return Math.round(combined * 1000) / 10;
 }
@@ -825,6 +1007,8 @@ export function isConfidentMatch(opts: {
   hogSim?: number;
   hasPatch?: boolean;
   briefDist?: number;
+  orbSim?: number;
+  structureSim?: number;
 }): boolean {
   if (opts.score < opts.minScore) return false;
 
@@ -834,38 +1018,45 @@ export function isConfidentMatch(opts: {
   const patchOk = Math.max(patchNcc, patchS);
   const ph = opts.phashDist;
   const hog = opts.hogSim;
+  const orb = opts.orbSim;
+  const struct = opts.structureSim;
 
   // تێبینی نوێ (پاتچ هەیە): AND تەواو
   if (hasPatch) {
-    if (patchOk < 0.82) return false;
-    if (patchNcc < 0.78 || patchS < 0.74) return false;
-    if (opts.hashDist > 9) return false;
-    if (opts.colorDist > 0.18) return false;
-    if (ph != null && ph > 11) return false;
-    if (hog != null && hog < 0.74) return false;
-    if (opts.briefDist != null && opts.briefDist > 18) return false;
+    if (patchOk < 0.85) return false;
+    if (patchNcc < 0.82 || patchS < 0.78) return false;
+    if (opts.hashDist > 8) return false;
+    if ((opts.avgHashDist ?? opts.hashDist) > 11) return false;
+    if (opts.colorDist > 0.15) return false;
+    if (ph != null && ph > 9) return false;
+    if (hog != null && hog < 0.78) return false;
+    if (opts.briefDist != null && opts.briefDist > 14) return false;
+    if (orb != null && orb < 0.45) return false;
+    if (struct != null && struct < 0.72) return false;
     return true;
   }
 
-  // تێبینی کۆن بێ پاتچ — زۆر توندتر / نزیک بە قەدەغە
-  // پێویستی بە هاشی زۆر بەهێز هەیە؛ باشترە دووبارە تۆمار بکرێتەوە
+  // تێبینی کۆن بێ پاتچ — نزیک بە قەدەغە
   return (
-    opts.hashDist <= 6 &&
-    (opts.avgHashDist ?? opts.hashDist) <= 9 &&
-    (opts.closeHits ?? 0) >= 3 &&
-    opts.colorDist <= 0.14 &&
-    (ph == null || ph <= 8)
+    opts.hashDist <= 5 &&
+    (opts.avgHashDist ?? opts.hashDist) <= 7 &&
+    (opts.closeHits ?? 0) >= 4 &&
+    opts.colorDist <= 0.12 &&
+    (ph == null || ph <= 6)
   );
 }
 
 /** ئەگەر دوو نیشانە نزیک بن لە خاڵ — ڕەت بکەرەوە (ناڕوون) */
 export function rejectAmbiguous<T extends { score: number; hashDist: number }>(
   matches: T[],
-  minGap = 15
+  minGap = 18
 ): T[] {
   if (matches.length < 2) return matches;
   const [a, b] = matches;
-  if (a.score - b.score < minGap || (a.score - b.score < 20 && Math.abs(a.hashDist - b.hashDist) <= 4)) {
+  if (
+    a.score - b.score < minGap ||
+    (a.score - b.score < 22 && Math.abs(a.hashDist - b.hashDist) <= 3)
+  ) {
     // ناڕوونە کام شتە — هیچ پیشان مەدە
     return [];
   }
@@ -892,6 +1083,8 @@ export function scoreLocalNote(
   hogSim: number;
   hasPatch: boolean;
   briefDist?: number;
+  orbSim?: number;
+  structureSim?: number;
 } {
   const profile = parseColorProfile(note.colorProfile);
   const stored = noteHashes(note.imageHash, profile);
@@ -912,6 +1105,14 @@ export function scoreLocalNote(
     fp.colorProfile.brief && profile.brief
       ? hammingDistanceHex(fp.colorProfile.brief, profile.brief)
       : undefined;
+  const orbSim =
+    fp.colorProfile.orb?.length && profile.orb?.length
+      ? orbSimilarity(fp.colorProfile.orb, profile.orb)
+      : undefined;
+  const structureSim =
+    fp.colorProfile.structure?.length && profile.structure?.length
+      ? structureSimilarity(fp.colorProfile.structure, profile.structure)
+      : undefined;
 
   const score = matchScore({
     hashDist: consensus.best,
@@ -926,6 +1127,9 @@ export function scoreLocalNote(
     patchSSIM: patchScore.ssim,
     phashDist,
     hogSim,
+    orbSim,
+    structureSim,
+    briefDist,
   });
 
   return {
@@ -940,5 +1144,7 @@ export function scoreLocalNote(
     hogSim,
     hasPatch,
     briefDist,
+    orbSim,
+    structureSim,
   };
 }
