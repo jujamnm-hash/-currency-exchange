@@ -13,6 +13,8 @@ export type ColorProfile = {
   patches?: number[][];
   /** HOG بچووک (٣٢ نرخ) */
   hog?: number[];
+  /** BRIEF-like ١٦ hex */
+  brief?: string;
 };
 
 export type VisualFingerprint = {
@@ -20,6 +22,8 @@ export type VisualFingerprint = {
   colorProfile: ColorProfile;
   thumbnail: string;
   hashes: string[];
+  /** Laplacian variance — بەرزتر = ڕوونتر */
+  sharpness?: number;
 };
 
 const HASH_SIZE = 9;
@@ -132,27 +136,34 @@ export function captureFingerprint(
   );
   const thumbnail = thumbCanvas.toDataURL("image/jpeg", 0.55);
 
+  const sharpness = measureSharpness(patch32, 32);
+  colorProfile.brief = computeBrief(patch);
+
   return {
     imageHash: uniqueHashes[0],
     colorProfile,
     thumbnail,
     hashes: uniqueHashes,
+    sharpness,
   };
 }
 
 export async function captureMultiFrameFingerprint(
   video: HTMLVideoElement,
-  frames = 7,
-  gapMs = 110
+  frames = 8,
+  gapMs = 100
 ): Promise<VisualFingerprint> {
   const collected: VisualFingerprint[] = [];
   for (let i = 0; i < frames; i++) {
     if (i > 0) await sleep(gapMs);
     if (video.readyState < 2) continue;
-    collected.push(captureFingerprint(video, { thumbnailMax: 120, rich: true }));
+    const fp = captureFingerprint(video, { thumbnailMax: 120, rich: true });
+    // فڕێدانی وێنەی لێڵ
+    if ((fp.sharpness ?? 0) < 18) continue;
+    collected.push(fp);
   }
   if (collected.length < 3) {
-    throw new Error("نەتوانرا وێنە بگردرێت — کامێرا جێگیر بکە");
+    throw new Error("وێنە لێڵە یان لەرزی — ڕوونایی باشتر و جێگیر بمێنەوە");
   }
 
   // تەنها چوارچێوە جێگیرەکان بهێڵەرەوە (phash نزیک لە یەکتر)
@@ -233,6 +244,9 @@ export function mergeFingerprints(list: VisualFingerprint[]): VisualFingerprint 
     patch: patchLen ? patch.map((v) => clampByte(v / n)) : undefined,
     patches: patches.length ? patches : undefined,
     hog: hogLen ? hog.map((v) => Math.round((v / n) * 1000) / 1000) : undefined,
+    brief: list.map((f) => f.colorProfile.brief).filter(Boolean)[
+      Math.floor(list.length / 2)
+    ] as string | undefined,
   };
 
   return {
@@ -387,6 +401,92 @@ export function patchSimilarity(a?: number[], b?: number[]): number {
 
 
 /** SSIM سادە لەسەر پاتچ ٠–١ */
+
+/** Laplacian variance — پێوانی ڕوونی وێنە */
+export function measureSharpness(data: Uint8ClampedArray, size: number): number {
+  const gray: number[] = [];
+  for (let i = 0; i < size * size; i++) {
+    const o = i * 4;
+    gray.push(luminance(data[o], data[o + 1], data[o + 2]));
+  }
+  const vals: number[] = [];
+  for (let y = 1; y < size - 1; y++) {
+    for (let x = 1; x < size - 1; x++) {
+      const lap =
+        gray[(y - 1) * size + x] +
+        gray[(y + 1) * size + x] +
+        gray[y * size + x - 1] +
+        gray[y * size + x + 1] -
+        4 * gray[y * size + x];
+      vals.push(lap);
+    }
+  }
+  const mean = vals.reduce((a, b) => a + b, 0) / (vals.length || 1);
+  let v = 0;
+  for (const x of vals) v += (x - mean) ** 2;
+  return Math.round((v / (vals.length || 1)) * 10) / 10;
+}
+
+/** BRIEF سادە لەسەر پاتچ */
+function computeBrief(patch: number[]): string {
+  // جووتە خاڵی جێگیر
+  const pairs: Array<[number, number]> = [];
+  for (let i = 0; i < 64; i++) {
+    const a = (i * 37) % patch.length;
+    const b = (i * 91 + 17) % patch.length;
+    pairs.push([a, b]);
+  }
+  let bits = "";
+  for (const [a, b] of pairs) {
+    bits += (patch[a] ?? 0) < (patch[b] ?? 0) ? "1" : "0";
+  }
+  let hex = "";
+  for (let i = 0; i < 64; i += 4) {
+    hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
+  }
+  return hex;
+}
+
+export type CaptureQuality = {
+  ok: boolean;
+  sharpness: number;
+  score: number;
+  message: string;
+};
+
+/** پێوانی ئامادەیی تۆمار لەسەر چوارچێوەی ئێستا */
+export function assessCaptureQuality(fp: VisualFingerprint): CaptureQuality {
+  const sharpness = fp.sharpness ?? 0;
+  const sharpScore = Math.max(0, Math.min(1, sharpness / 60));
+  const hasPatch = Boolean(fp.colorProfile.patch?.length);
+  const hasPhash = Boolean(fp.colorProfile.phash);
+  const score = Math.round(
+    (sharpScore * 0.55 + (hasPatch ? 0.25 : 0) + (hasPhash ? 0.2 : 0)) * 100
+  );
+  if (sharpness < 18) {
+    return {
+      ok: false,
+      sharpness,
+      score,
+      message: "وێنە لێڵە — ڕوونایی زیاد بکە یان جێگیر بمێنەوە",
+    };
+  }
+  if (sharpness < 28) {
+    return {
+      ok: false,
+      sharpness,
+      score,
+      message: "هێشتا کەمێک لێڵە — جێگیرتر بمێنەوە",
+    };
+  }
+  return {
+    ok: true,
+    sharpness,
+    score: Math.max(score, 75),
+    message: "ناسنامە ئامادەیە — دەتوانیت تۆمار بکەیت",
+  };
+}
+
 export function patchSSIM(a?: number[], b?: number[]): number {
   if (!a?.length || !b?.length) return 0;
   const len = Math.min(a.length, b.length);
@@ -428,13 +528,48 @@ export function bestPatchScore(
     (p): p is number[] => Boolean(p?.length)
   );
   if (!query?.length || !list.length) return { ncc: 0, ssim: 0, combined: 0 };
+
+  // خۆڕاگری قەبارە: query لە ٣ قەبارە
+  const queries = [0.92, 1, 1.08].map((s) => resizePatch(query, PATCH_SIZE, s));
+
   let bestN = 0,
     bestS = 0;
-  for (const p of list) {
-    bestN = Math.max(bestN, patchSimilarity(query, p));
-    bestS = Math.max(bestS, patchSSIM(query, p));
+  for (const q of queries) {
+    for (const p of list) {
+      bestN = Math.max(bestN, patchSimilarity(q, p));
+      bestS = Math.max(bestS, patchSSIM(q, p));
+    }
   }
   return { ncc: bestN, ssim: bestS, combined: bestN * 0.55 + bestS * 0.45 };
+}
+
+function resizePatch(patch: number[], size: number, scale: number): number[] {
+  const out: number[] = [];
+  const cx = (size - 1) / 2;
+  const cy = (size - 1) / 2;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const sx = cx + (x - cx) / scale;
+      const sy = cy + (y - cy) / scale;
+      const x0 = Math.max(0, Math.min(size - 1, Math.floor(sx)));
+      const y0 = Math.max(0, Math.min(size - 1, Math.floor(sy)));
+      const x1 = Math.min(size - 1, x0 + 1);
+      const y1 = Math.min(size - 1, y0 + 1);
+      const fx = sx - x0;
+      const fy = sy - y0;
+      const v00 = patch[y0 * size + x0] ?? 128;
+      const v10 = patch[y0 * size + x1] ?? 128;
+      const v01 = patch[y1 * size + x0] ?? 128;
+      const v11 = patch[y1 * size + x1] ?? 128;
+      const v =
+        v00 * (1 - fx) * (1 - fy) +
+        v10 * fx * (1 - fy) +
+        v01 * (1 - fx) * fy +
+        v11 * fx * fy;
+      out.push(v);
+    }
+  }
+  return out;
 }
 
 export function hogSimilarity(a?: number[], b?: number[]): number {
@@ -689,6 +824,7 @@ export function isConfidentMatch(opts: {
   phashDist?: number;
   hogSim?: number;
   hasPatch?: boolean;
+  briefDist?: number;
 }): boolean {
   if (opts.score < opts.minScore) return false;
 
@@ -701,12 +837,13 @@ export function isConfidentMatch(opts: {
 
   // تێبینی نوێ (پاتچ هەیە): AND تەواو
   if (hasPatch) {
-    if (patchOk < 0.8) return false;
-    if (patchNcc < 0.76 || patchS < 0.72) return false;
-    if (opts.hashDist > 10) return false;
-    if (opts.colorDist > 0.2) return false;
-    if (ph != null && ph > 12) return false;
-    if (hog != null && hog < 0.72) return false;
+    if (patchOk < 0.82) return false;
+    if (patchNcc < 0.78 || patchS < 0.74) return false;
+    if (opts.hashDist > 9) return false;
+    if (opts.colorDist > 0.18) return false;
+    if (ph != null && ph > 11) return false;
+    if (hog != null && hog < 0.74) return false;
+    if (opts.briefDist != null && opts.briefDist > 18) return false;
     return true;
   }
 
@@ -754,6 +891,7 @@ export function scoreLocalNote(
   phashDist: number;
   hogSim: number;
   hasPatch: boolean;
+  briefDist?: number;
 } {
   const profile = parseColorProfile(note.colorProfile);
   const stored = noteHashes(note.imageHash, profile);
@@ -770,6 +908,10 @@ export function scoreLocalNote(
       : consensus.best;
   const hogSim = hogSimilarity(fp.colorProfile.hog, profile.hog);
   const hasPatch = Boolean(profile.patch?.length || profile.patches?.length);
+  const briefDist =
+    fp.colorProfile.brief && profile.brief
+      ? hammingDistanceHex(fp.colorProfile.brief, profile.brief)
+      : undefined;
 
   const score = matchScore({
     hashDist: consensus.best,
@@ -797,5 +939,6 @@ export function scoreLocalNote(
     phashDist,
     hogSim,
     hasPatch,
+    briefDist,
   };
 }

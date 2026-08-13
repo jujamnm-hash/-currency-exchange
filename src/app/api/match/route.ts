@@ -33,6 +33,7 @@ const matchSchema = z.object({
     patch: z.array(z.number()).max(512).optional(),
     patches: z.array(z.array(z.number())).max(8).optional(),
     hog: z.array(z.number()).max(64).optional(),
+    brief: z.string().optional(),
   }),
   deviceId: z.string().optional(),
   radiusM: z.number().min(10).max(2000).optional(),
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     const data = matchSchema.parse(await req.json());
     const visualOnly = Boolean(data.visualOnly);
     const radiusM = data.radiusM ?? (visualOnly ? 2000 : 150);
-    const minScore = data.minScore ?? 70;
+    const minScore = data.minScore ?? 72;
 
     const queryHashes = Array.from(
       new Set(
@@ -111,13 +112,18 @@ export async function POST(req: NextRequest) {
             : consensus.best;
         const hogSim = hogSimilarity(data.colorProfile.hog, profile.hog);
         const hasPatch = Boolean(profile.patch?.length || profile.patches?.length);
+        const briefDist =
+          data.colorProfile.brief && profile.brief
+            ? hammingDistanceHex(data.colorProfile.brief, profile.brief)
+            : undefined;
 
         // دەروازەی AND سەرەتایی
-        if (consensus.best > 10) return null;
-        if (cDist > 0.22) return null;
-        if (hasPatch && patchScore.combined < 0.78) return null;
-        if (profile.phash && phashDist > 12) return null;
-        if (profile.hog?.length && hogSim < 0.7) return null;
+        if (consensus.best > 9) return null;
+        if (cDist > 0.2) return null;
+        if (hasPatch && patchScore.combined < 0.8) return null;
+        if (profile.phash && phashDist > 11) return null;
+        if (profile.hog?.length && hogSim < 0.72) return null;
+        if (briefDist != null && briefDist > 18) return null;
 
         const score = matchScore({
           hashDist: consensus.best,
@@ -148,6 +154,7 @@ export async function POST(req: NextRequest) {
             phashDist,
             hogSim,
             hasPatch,
+            briefDist,
           })
         ) {
           return null;
@@ -179,7 +186,7 @@ export async function POST(req: NextRequest) {
       radiusM,
       visualOnly,
       minScore,
-      mode: "and-gate-ssim-v3",
+      mode: "blur-scale-enrich-v4",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
