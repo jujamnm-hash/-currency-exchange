@@ -4,14 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { ensureSchema } from "@/lib/db-bootstrap";
 import { distanceMeters, geoBoundingBox } from "@/lib/geo";
 import {
+  bestPatchScore,
   colorDistance,
   consensusHashDistance,
   hammingDistanceHex,
+  hogSimilarity,
   isConfidentMatch,
   matchScore,
   noteHashes,
   parseColorProfile,
-  patchSimilarity,
   rejectAmbiguous,
 } from "@/lib/vision";
 
@@ -30,6 +31,8 @@ const matchSchema = z.object({
     edges: z.array(z.number()).max(32).optional(),
     phash: z.string().optional(),
     patch: z.array(z.number()).max(512).optional(),
+    patches: z.array(z.array(z.number())).max(8).optional(),
+    hog: z.array(z.number()).max(64).optional(),
   }),
   deviceId: z.string().optional(),
   radiusM: z.number().min(10).max(2000).optional(),
@@ -43,7 +46,7 @@ export async function POST(req: NextRequest) {
     const data = matchSchema.parse(await req.json());
     const visualOnly = Boolean(data.visualOnly);
     const radiusM = data.radiusM ?? (visualOnly ? 2000 : 150);
-    const minScore = data.minScore ?? 62;
+    const minScore = data.minScore ?? 70;
 
     const queryHashes = Array.from(
       new Set(
@@ -97,17 +100,24 @@ export async function POST(req: NextRequest) {
         const stored = noteHashes(note.imageHash, profile);
         const consensus = consensusHashDistance(queryHashes, stored);
         const cDist = colorDistance(data.colorProfile, profile);
-        const patchSim = patchSimilarity(data.colorProfile.patch, profile.patch);
+        const patchScore = bestPatchScore(
+          data.colorProfile.patch,
+          profile.patch,
+          profile.patches
+        );
         const phashDist =
           data.colorProfile.phash && profile.phash
             ? hammingDistanceHex(data.colorProfile.phash, profile.phash)
             : consensus.best;
+        const hogSim = hogSimilarity(data.colorProfile.hog, profile.hog);
+        const hasPatch = Boolean(profile.patch?.length || profile.patches?.length);
 
-        // دەروازەی سەرەتایی توند
-        if (consensus.best > 12) return null;
-        if (cDist > 0.26) return null;
-        if (profile.patch?.length && patchSim < 0.7) return null;
-        if (profile.phash && phashDist > 16) return null;
+        // دەروازەی AND سەرەتایی
+        if (consensus.best > 10) return null;
+        if (cDist > 0.22) return null;
+        if (hasPatch && patchScore.combined < 0.78) return null;
+        if (profile.phash && phashDist > 12) return null;
+        if (profile.hog?.length && hogSim < 0.7) return null;
 
         const score = matchScore({
           hashDist: consensus.best,
@@ -118,8 +128,10 @@ export async function POST(req: NextRequest) {
           visualPrimary: true,
           avgHashDist: consensus.avgTop,
           closeHits: consensus.closeHits,
-          patchSim,
+          patchSim: patchScore.ncc,
+          patchSSIM: patchScore.ssim,
           phashDist,
+          hogSim,
         });
 
         if (
@@ -131,8 +143,11 @@ export async function POST(req: NextRequest) {
             minScore,
             avgHashDist: consensus.avgTop,
             closeHits: consensus.closeHits,
-            patchSim,
+            patchSim: patchScore.ncc,
+            patchSSIM: patchScore.ssim,
             phashDist,
+            hogSim,
+            hasPatch,
           })
         ) {
           return null;
@@ -144,8 +159,9 @@ export async function POST(req: NextRequest) {
           distanceM: Math.round(dist * 10) / 10,
           hashDist: consensus.best,
           colorDist: Math.round(cDist * 1000) / 1000,
-          patchSim: Math.round(patchSim * 1000) / 1000,
+          patchSim: Math.round(patchScore.combined * 1000) / 1000,
           phashDist,
+          hogSim: Math.round(hogSim * 1000) / 1000,
         };
       })
       .filter(Boolean)
@@ -155,7 +171,7 @@ export async function POST(req: NextRequest) {
       [k: string]: unknown;
     }>;
 
-    const matches = rejectAmbiguous(scored, 12).slice(0, 3);
+    const matches = rejectAmbiguous(scored, 15).slice(0, 2);
 
     return NextResponse.json({
       matches,
@@ -163,7 +179,7 @@ export async function POST(req: NextRequest) {
       radiusM,
       visualOnly,
       minScore,
-      mode: "strict-identity-v2",
+      mode: "and-gate-ssim-v3",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
