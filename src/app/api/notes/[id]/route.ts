@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ensureSchema } from "@/lib/db-bootstrap";
+import { parseColorProfile } from "@/lib/vision";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,17 @@ const updateSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
   content: z.string().trim().min(1).max(8000).optional(),
   deviceId: z.string().min(8).max(80),
+  /** بەهێزکردنی ناسنامە کاتێ قفڵ دەبێت */
+  enrichProfile: z
+    .object({
+      patch: z.array(z.number()).max(512).optional(),
+      patches: z.array(z.array(z.number())).max(8).optional(),
+      phash: z.string().optional(),
+      hog: z.array(z.number()).max(64).optional(),
+      brief: z.string().optional(),
+      hashes: z.array(z.string()).max(64).optional(),
+    })
+    .optional(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -35,11 +47,37 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     if (existing.deviceId !== body.deviceId) {
       return NextResponse.json({ error: "دەسەڵات نییە" }, { status: 403 });
     }
+
+    let colorProfile = existing.colorProfile;
+    if (body.enrichProfile) {
+      const current = parseColorProfile(existing.colorProfile);
+      const incoming = body.enrichProfile;
+      const patches = [
+        ...(current.patches ?? []),
+        ...(current.patch ? [current.patch] : []),
+        ...(incoming.patches ?? []),
+        ...(incoming.patch ? [incoming.patch] : []),
+      ].slice(0, 8);
+      const hashes = Array.from(
+        new Set([...(current.hashes ?? []), ...(incoming.hashes ?? [])])
+      ).slice(0, 48);
+      colorProfile = JSON.stringify({
+        ...current,
+        patch: incoming.patch ?? current.patch,
+        patches,
+        phash: current.phash ?? incoming.phash,
+        hog: current.hog ?? incoming.hog,
+        brief: current.brief ?? incoming.brief,
+        hashes,
+      });
+    }
+
     const note = await prisma.spatialNote.update({
       where: { id },
       data: {
         title: body.title,
         content: body.content,
+        colorProfile,
       },
     });
     return NextResponse.json({ note });

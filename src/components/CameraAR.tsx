@@ -20,11 +20,13 @@ import {
   type Orientation,
 } from "@/lib/sensors";
 import {
+  assessCaptureQuality,
   captureFingerprint,
   captureMultiFrameFingerprint,
   isConfidentMatch,
   rejectAmbiguous,
   scoreLocalNote,
+  type CaptureQuality,
 } from "@/lib/vision";
 import type { MatchedNote, SpatialNoteDTO } from "@/lib/types";
 import { MatchOverlay } from "./MatchOverlay";
@@ -45,6 +47,10 @@ export function CameraAR() {
   const streakRef = useRef<Map<string, number>>(new Map());
   const missStreakRef = useRef(0);
   const lockedIdRef = useRef<string | null>(null);
+  const enrichSentRef = useRef<Set<string>>(new Set());
+  const [captureQuality, setCaptureQuality] = useState<CaptureQuality | null>(
+    null
+  );
 
   const [started, setStarted] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -157,6 +163,45 @@ export function CameraAR() {
     }
   }
 
+  function enrichIdentity(note: MatchedNote, fp: ReturnType<typeof captureFingerprint>) {
+    if (enrichSentRef.current.has(note.id)) return;
+    if (note.score < 78 || note.hashDist > 8) return;
+    enrichSentRef.current.add(note.id);
+    void fetch(`/api/notes/${note.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deviceId: getDeviceId(),
+        enrichProfile: {
+          patch: fp.colorProfile.patch,
+          patches: fp.colorProfile.patch ? [fp.colorProfile.patch] : undefined,
+          phash: fp.colorProfile.phash,
+          hog: fp.colorProfile.hog,
+          brief: fp.colorProfile.brief,
+          hashes: fp.hashes.slice(0, 32),
+        },
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          enrichSentRef.current.delete(note.id);
+          return;
+        }
+        const data = await res.json();
+        if (data.note) {
+          const updated = data.note as SpatialNoteDTO;
+          saveNoteToCache(updated);
+          cacheRef.current = [
+            updated,
+            ...cacheRef.current.filter((n) => n.id !== updated.id),
+          ];
+        }
+      })
+      .catch(() => {
+        enrichSentRef.current.delete(note.id);
+      });
+  }
+
   function applyMatchResults(found: MatchedNote[]) {
     if (found.length) {
       missStreakRef.current = 0;
@@ -183,13 +228,13 @@ export function CameraAR() {
           ? `نیشانەی ئەم شتە: ${top.title}`
           : `ناسنامە ${Math.round(top.score)}% — جێگیر بمێنەوە لەسەر شتەکە`
       );
-      return;
+      return shouldLock;
     }
 
     missStreakRef.current += 1;
     if (lockedIdRef.current && missStreakRef.current < 2) {
       setStatus("نیشانە — کامێرا لەسەر هەمان شت بهێڵەرەوە");
-      return;
+      return false;
     }
 
     lockedIdRef.current = null;
@@ -197,6 +242,7 @@ export function CameraAR() {
     streakRef.current.clear();
     setMatches([]);
     setStatus("تەنها هەمان شت · ناوەندی بازنە · جێگیر");
+    return false;
   }
 
   const scanOnce = useCallback(async () => {
@@ -214,6 +260,8 @@ export function CameraAR() {
 
     try {
       const fp = captureFingerprint(video, { thumbnailMax: 120, rich: true });
+      const quality = assessCaptureQuality(fp);
+      setCaptureQuality(quality);
 
       const localHits: MatchedNote[] = cacheRef.current
         .map((note) => {
@@ -224,7 +272,7 @@ export function CameraAR() {
               colorDist: s.colorDist,
               distanceM: 0,
               score: s.score,
-              minScore: 70,
+              minScore: 72,
               avgHashDist: s.avgHashDist,
               closeHits: s.closeHits,
               patchSim: s.patchSim,
@@ -232,6 +280,7 @@ export function CameraAR() {
               phashDist: s.phashDist,
               hogSim: s.hogSim,
               hasPatch: s.hasPatch,
+              briefDist: s.briefDist,
             })
           ) {
             return null;
@@ -266,7 +315,7 @@ export function CameraAR() {
             ? 2000
             : Math.max(100, Math.min(300, (geo.accuracy || 40) * 3.5)),
           visualOnly: noGeo,
-          minScore: 70,
+          minScore: 72,
         }),
       });
       const data = await res.json();
@@ -284,7 +333,15 @@ export function CameraAR() {
         ),
         12
       );
-      applyMatchResults(merged);
+      const justLocked = applyMatchResults(merged);
+      const top = merged[0];
+      if (
+        top &&
+        (justLocked || lockedIdRef.current === top.id) &&
+        top.score >= 78
+      ) {
+        enrichIdentity(top, fp);
+      }
     } catch {
       if (!matches.length) {
         setStatus("گەڕان سەرنەکەوت — دووبارە هەوڵ بدە");
@@ -307,6 +364,20 @@ export function CameraAR() {
       setStatus("سەرەتا دەستپێکردن داگرە");
       return;
     }
+    const video = videoRef.current;
+    if (video && video.readyState >= 2) {
+      try {
+        const probe = captureFingerprint(video, { thumbnailMax: 80, rich: true });
+        const quality = assessCaptureQuality(probe);
+        setCaptureQuality(quality);
+        if (!quality.ok) {
+          setStatus(quality.message);
+          return;
+        }
+      } catch {
+        /* ignore probe errors */
+      }
+    }
     setComposerOpen(true);
   }
 
@@ -315,12 +386,19 @@ export function CameraAR() {
     if (!video || video.readyState < 2) {
       throw new Error("کامێرا ئامادە نییە — چاوەڕوان بە تا وێنە دەردەکەوێت");
     }
+    const probe = captureFingerprint(video, { thumbnailMax: 80, rich: true });
+    const quality = assessCaptureQuality(probe);
+    setCaptureQuality(quality);
+    if (!quality.ok) {
+      throw new Error(quality.message);
+    }
+
     setSaving(true);
     setHoldSteady(true);
     setStatus("جێگیر بمێنەوە — چەند وێنە دەگیرێت...");
     try {
       const geo = await resolveGeoForSave();
-      const fp = await captureMultiFrameFingerprint(video, 7, 110);
+      const fp = await captureMultiFrameFingerprint(video, 8, 100);
       setHoldSteady(false);
       setStatus("پاشەکەوت...");
 
@@ -490,6 +568,35 @@ export function CameraAR() {
       {ready && (
         <div className="absolute inset-x-0 bottom-0 z-30 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6">
           <p className="mb-3 text-center text-xs text-mist-200/90">{status}</p>
+          {captureQuality && (
+            <div className="mx-auto mb-3 max-w-xs">
+              <div className="mb-1 flex items-center justify-between text-[11px]">
+                <span
+                  className={
+                    captureQuality.ok ? "text-emerald-300" : "text-amber-300"
+                  }
+                >
+                  {captureQuality.ok ? "ڕوونی باش" : "ڕوونی لاواز"}
+                </span>
+                <span className="text-mist-500">{captureQuality.score}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    captureQuality.ok ? "bg-emerald-400" : "bg-amber-400"
+                  }`}
+                  style={{
+                    width: `${Math.max(8, Math.min(100, captureQuality.score))}%`,
+                  }}
+                />
+              </div>
+              {!captureQuality.ok && (
+                <p className="mt-1 text-center text-[10px] text-amber-200/90">
+                  {captureQuality.message}
+                </p>
+              )}
+            </div>
+          )}
           {heading != null && (
             <p className="mb-2 text-center text-[11px] text-mist-500">
               ئاراستە: {Math.round(heading)}°
