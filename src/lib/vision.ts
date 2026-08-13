@@ -305,6 +305,33 @@ export function bestHashDistance(query: string[], stored: string[]): number {
   return best;
 }
 
+/**
+ * دووری هاش بە کۆدەنگی — کەمتر فڕۆشەپۆزیتیڤ
+ * best تەنها بەس نییە؛ دەبێت چەند هاش نزیک بن.
+ */
+export function consensusHashDistance(
+  query: string[],
+  stored: string[]
+): { best: number; avgTop: number; closeHits: number } {
+  if (!query.length || !stored.length) {
+    return { best: 64, avgTop: 64, closeHits: 0 };
+  }
+  const perQuery: number[] = [];
+  for (const q of query) {
+    let best = 64;
+    for (const s of stored) {
+      best = Math.min(best, hammingDistanceHex(q, s));
+    }
+    perQuery.push(best);
+  }
+  perQuery.sort((a, b) => a - b);
+  const best = perQuery[0] ?? 64;
+  const topN = perQuery.slice(0, Math.min(5, perQuery.length));
+  const avgTop = topN.reduce((a, b) => a + b, 0) / topN.length;
+  const closeHits = perQuery.filter((d) => d <= 12).length;
+  return { best, avgTop, closeHits };
+}
+
 export function colorDistance(a: ColorProfile, b: ColorProfile): number {
   if (!a?.regions?.length || !b?.regions?.length) return 1;
   const len = Math.min(a.regions.length, b.regions.length);
@@ -344,37 +371,52 @@ export function matchScore(opts: {
   headingDelta: number;
   radiusM: number;
   visualPrimary?: boolean;
+  avgHashDist?: number;
+  closeHits?: number;
 }): number {
-  const hashScore = Math.max(0, 1 - opts.hashDist / 34);
-  const colorScore = Math.max(0, 1 - opts.colorDist / 0.5);
-  const distScore = Math.max(0, 1 - opts.distanceM / Math.max(opts.radiusM, 1));
-  const headScore = Math.max(0, 1 - opts.headingDelta / 120);
+  const hashScore = Math.max(0, 1 - opts.hashDist / 16);
+  const avgScore =
+    opts.avgHashDist != null ? Math.max(0, 1 - opts.avgHashDist / 18) : hashScore;
+  const colorScore = Math.max(0, 1 - opts.colorDist / 0.28);
+  const hitBonus = Math.min(1, (opts.closeHits ?? 0) / 4);
 
-  let combined: number;
-  if (opts.visualPrimary) {
-    combined = hashScore * 0.72 + colorScore * 0.28;
-  } else {
-    combined =
-      hashScore * 0.52 + colorScore * 0.25 + distScore * 0.15 + headScore * 0.08;
-  }
+  // GPS ناتوانێت بە تەنها match دروست بکات — تەنها بینراو
+  const combined =
+    hashScore * 0.45 + avgScore * 0.2 + colorScore * 0.25 + hitBonus * 0.1;
   return Math.round(combined * 1000) / 10;
 }
 
+/**
+ * تەنها کاتێ ڕاستە کە شتەکە بەڕاستی هاوشێوەی بینراو بێت.
+ * نزیکبوونی GPS بەس نییە.
+ */
 export function isConfidentMatch(opts: {
   hashDist: number;
   colorDist: number;
   distanceM: number;
   score: number;
   minScore: number;
+  avgHashDist?: number;
+  closeHits?: number;
 }): boolean {
-  if (opts.score >= opts.minScore) return true;
-  if (opts.hashDist <= 14) return true;
-  if (opts.distanceM <= 50 && opts.hashDist <= 22) return true;
-  if (opts.hashDist <= 18 && opts.colorDist <= 0.25) return true;
-  return false;
+  const avg = opts.avgHashDist ?? opts.hashDist;
+  const hits = opts.closeHits ?? 0;
+
+  const strongVisual =
+    opts.hashDist <= 10 && opts.colorDist <= 0.18 && opts.score >= opts.minScore;
+  const consensusVisual =
+    opts.hashDist <= 12 &&
+    avg <= 14 &&
+    hits >= 2 &&
+    opts.colorDist <= 0.2 &&
+    opts.score >= opts.minScore;
+  const veryStrongHash =
+    opts.hashDist <= 7 && opts.colorDist <= 0.25 && opts.score >= opts.minScore - 5;
+
+  return strongVisual || consensusVisual || veryStrongHash;
 }
 
-/** گەڕانی خێرای خۆجێیی لەسەر کاش */
+/** گەڕانی خێرای خۆجێیی — توند؛ تەنها هەمان شت */
 export function scoreLocalNote(
   fp: VisualFingerprint,
   note: {
@@ -383,37 +425,33 @@ export function scoreLocalNote(
     latitude: number;
     longitude: number;
   },
-  geo?: { latitude: number; longitude: number } | null
-): { score: number; hashDist: number; colorDist: number } {
+  _geo?: { latitude: number; longitude: number } | null
+): {
+  score: number;
+  hashDist: number;
+  colorDist: number;
+  avgHashDist: number;
+  closeHits: number;
+} {
   const profile = parseColorProfile(note.colorProfile);
   const stored = noteHashes(note.imageHash, profile);
-  const hashDist = bestHashDistance(fp.hashes, stored);
+  const consensus = consensusHashDistance(fp.hashes, stored);
   const cDist = colorDistance(fp.colorProfile, profile);
-  const noteFallback =
-    Math.abs(note.latitude) < 0.01 && Math.abs(note.longitude) < 0.01;
-  const queryFallback =
-    !geo || (Math.abs(geo.latitude) < 0.01 && Math.abs(geo.longitude) < 0.01);
-  const visualPrimary = noteFallback || queryFallback;
-  let distanceM = 0;
-  if (!visualPrimary && geo) {
-    const R = 6371000;
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const dLat = toRad(note.latitude - geo.latitude);
-    const dLon = toRad(note.longitude - geo.longitude);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(geo.latitude)) *
-        Math.cos(toRad(note.latitude)) *
-        Math.sin(dLon / 2) ** 2;
-    distanceM = 2 * R * Math.asin(Math.sqrt(a));
-  }
   const score = matchScore({
-    hashDist,
+    hashDist: consensus.best,
     colorDist: cDist,
-    distanceM: visualPrimary ? 0 : distanceM,
+    distanceM: 0,
     headingDelta: 90,
     radiusM: 200,
-    visualPrimary,
+    visualPrimary: true,
+    avgHashDist: consensus.avgTop,
+    closeHits: consensus.closeHits,
   });
-  return { score, hashDist, colorDist: cDist };
+  return {
+    score,
+    hashDist: consensus.best,
+    colorDist: cDist,
+    avgHashDist: consensus.avgTop,
+    closeHits: consensus.closeHits,
+  };
 }

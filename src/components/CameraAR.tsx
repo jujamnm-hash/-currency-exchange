@@ -162,14 +162,14 @@ export function CameraAR() {
       const top = found[0];
       const prev = streakRef.current.get(top.id) ?? 0;
       streakRef.current.set(top.id, prev + 1);
-      // پاککردنەوەی streak ـی ئەوانی تر
       for (const [id] of streakRef.current) {
         if (id !== top.id) streakRef.current.set(id, 0);
       }
 
       const streak = streakRef.current.get(top.id) ?? 0;
+      // قفڵ تەنها دوای ٣ جار دۆزینەوەی توند
       const shouldLock =
-        streak >= 2 || top.score >= 70 || top.hashDist <= 12;
+        streak >= 3 && top.score >= 58 && top.hashDist <= 12;
 
       if (shouldLock) {
         lockedIdRef.current = top.id;
@@ -178,25 +178,25 @@ export function CameraAR() {
 
       setMatches(found);
       setStatus(
-        shouldLock || lockedIdRef.current === top.id
-          ? `🔒 نیشانە قفڵ کرا — ${top.title}`
-          : `✓ ${found.length} نیشانە — جێگیر بمێنەوە`
+        lockedIdRef.current === top.id
+          ? `نیشانەی ئەم شتە: ${top.title}`
+          : `هاوشێوەیی ${Math.round(top.score)}% — جێگیر بمێنەوە`
       );
       return;
     }
 
     missStreakRef.current += 1;
-    if (lockedIdRef.current && missStreakRef.current < 4) {
-      // قفڵ ماوە تا ٤ جار نەدۆزرێتەوە
-      setStatus("نیشانە قفڵکراو — کامێرا لەسەر شتەکە بهێڵەرەوە");
+    // قفڵ زوو لابدە ئەگەر شتەکە نەما
+    if (lockedIdRef.current && missStreakRef.current < 2) {
+      setStatus("نیشانە — کامێرا لەسەر هەمان شت بهێڵەرەوە");
       return;
     }
 
     lockedIdRef.current = null;
     setLocked(false);
     streakRef.current.clear();
-    setMatches((prev) => (prev.some((m) => m.score >= 95) ? prev : []));
-    setStatus("شتەکە بکە ناو بازنەی ناوەند · دوگمەی گەڕان");
+    setMatches([]);
+    setStatus("تەنها لەسەر هەمان شت دەردەکەوێت — بکە ناو بازنە");
   }
 
   const scanOnce = useCallback(async () => {
@@ -215,7 +215,7 @@ export function CameraAR() {
     try {
       const fp = captureFingerprint(video, { thumbnailMax: 120, rich: true });
 
-      // ١) گەڕانی خۆجێیی خێرا
+      // ١) گەڕانی خۆجێیی توند
       const localHits: MatchedNote[] = cacheRef.current
         .map((note) => {
           const s = scoreLocalNote(fp, note, geoRef.current);
@@ -225,7 +225,9 @@ export function CameraAR() {
               colorDist: s.colorDist,
               distanceM: 0,
               score: s.score,
-              minScore: 30,
+              minScore: 58,
+              avgHashDist: s.avgHashDist,
+              closeHits: s.closeHits,
             })
           ) {
             return null;
@@ -240,13 +242,9 @@ export function CameraAR() {
         })
         .filter(Boolean)
         .sort((a, b) => b!.score - a!.score)
-        .slice(0, 5) as MatchedNote[];
+        .slice(0, 3) as MatchedNote[];
 
-      if (localHits.length && localHits[0].score >= 55) {
-        applyMatchResults(localHits);
-      }
-
-      // ٢) گەڕانی سێرڤەر
+      // ٢) گەڕانی سێرڤەر توند
       const res = await fetch("/api/match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -265,14 +263,13 @@ export function CameraAR() {
             ? 2000
             : Math.max(100, Math.min(300, (geo.accuracy || 40) * 3.5)),
           visualOnly: noGeo,
-          minScore: 24,
+          minScore: 58,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "هەڵەی گەڕان");
       const serverHits = (data.matches || []) as MatchedNote[];
 
-      // تێکەڵکردن
       const byId = new Map<string, MatchedNote>();
       for (const m of [...localHits, ...serverHits]) {
         const prev = byId.get(m.id);
@@ -283,7 +280,6 @@ export function CameraAR() {
       );
       applyMatchResults(merged);
     } catch {
-      // ئەگەر سێرڤەر شکستی هێنا، هەر کاش بەکاربهێنە
       if (!matches.length) {
         setStatus("گەڕان سەرنەکەوت — دووبارە هەوڵ بدە");
       }
@@ -522,7 +518,7 @@ export function CameraAR() {
             </button>
           </div>
           <p className="mt-3 text-center text-[11px] text-mist-500">
-            + نوسین · شت لە ناوەندی بازنە · جێگیر بمێنەوە
+            تێبینی تەنها لەسەر هەمان شت دەردەکەوێت — ناوەندی بازنە
           </p>
         </div>
       )}
