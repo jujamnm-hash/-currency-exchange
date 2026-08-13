@@ -24,25 +24,43 @@ const matchSchema = z.object({
   deviceId: z.string().optional(),
   radiusM: z.number().min(10).max(500).optional(),
   minScore: z.number().min(0).max(100).optional(),
+  /** کاتێ GPS نییە — تەنها نیشانەی بینراو لەسەر ئامێر */
+  visualOnly: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     await ensureSchema();
     const data = matchSchema.parse(await req.json());
-    const radiusM = data.radiusM ?? 60;
-    const minScore = data.minScore ?? 42;
-    const box = geoBoundingBox(data.latitude, data.longitude, radiusM);
+    const visualOnly = Boolean(data.visualOnly);
+    const radiusM = data.radiusM ?? (visualOnly ? 500 : 60);
+    const minScore = data.minScore ?? (visualOnly ? 48 : 42);
 
-    const candidates = await prisma.spatialNote.findMany({
-      where: {
-        latitude: { gte: box.minLat, lte: box.maxLat },
-        longitude: { gte: box.minLon, lte: box.maxLon },
-        ...(data.deviceId ? { deviceId: data.deviceId } : {}),
-      },
-      take: 120,
-      orderBy: { createdAt: "desc" },
-    });
+    let candidates;
+    if (visualOnly) {
+      if (!data.deviceId) {
+        return NextResponse.json(
+          { error: "بۆ گەڕانی بێ GPS پێویستە deviceId" },
+          { status: 400 }
+        );
+      }
+      candidates = await prisma.spatialNote.findMany({
+        where: { deviceId: data.deviceId },
+        take: 80,
+        orderBy: { createdAt: "desc" },
+      });
+    } else {
+      const box = geoBoundingBox(data.latitude, data.longitude, radiusM);
+      candidates = await prisma.spatialNote.findMany({
+        where: {
+          latitude: { gte: box.minLat, lte: box.maxLat },
+          longitude: { gte: box.minLon, lte: box.maxLon },
+          ...(data.deviceId ? { deviceId: data.deviceId } : {}),
+        },
+        take: 120,
+        orderBy: { createdAt: "desc" },
+      });
+    }
 
     const matches = candidates
       .map((note) => {
@@ -52,7 +70,7 @@ export async function POST(req: NextRequest) {
           note.latitude,
           note.longitude
         );
-        if (dist > radiusM) return null;
+        if (!visualOnly && dist > radiusM) return null;
 
         const hashDist = hammingDistanceHex(
           data.imageHash.toLowerCase(),
@@ -61,13 +79,21 @@ export async function POST(req: NextRequest) {
         const profile = parseColorProfile(note.colorProfile);
         const cDist = colorDistance(data.colorProfile, profile);
         const hDelta = headingDelta(data.heading, note.heading);
-        const score = matchScore({
-          hashDist,
-          colorDist: cDist,
-          distanceM: dist,
-          headingDelta: hDelta,
-          radiusM,
-        });
+
+        let score: number;
+        if (visualOnly) {
+          const hashScore = Math.max(0, 1 - hashDist / 22);
+          const colorScore = Math.max(0, 1 - cDist / 0.35);
+          score = Math.round((hashScore * 0.65 + colorScore * 0.35) * 1000) / 10;
+        } else {
+          score = matchScore({
+            hashDist,
+            colorDist: cDist,
+            distanceM: dist,
+            headingDelta: hDelta,
+            radiusM,
+          });
+        }
 
         if (score < minScore) return null;
 
@@ -83,7 +109,12 @@ export async function POST(req: NextRequest) {
       .sort((a, b) => (b!.score - a!.score) || a!.distanceM - b!.distanceM)
       .slice(0, 8);
 
-    return NextResponse.json({ matches, scanned: candidates.length, radiusM });
+    return NextResponse.json({
+      matches,
+      scanned: candidates.length,
+      radiusM,
+      visualOnly,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
