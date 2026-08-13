@@ -21,13 +21,23 @@
 - Tailwind CSS — UIی RTL کوردی
 - Server Actions بۆ کارەکان
 
-## دامەزراندن لە Vercel
+## 🌐 لینکی زیندوو (دامەزراوە)
+
+- **ئەپ:** https://heikali-edari-jujamnm-hashs-projects.vercel.app
+- **داشبۆرد:** https://heikali-edari-jujamnm-hashs-projects.vercel.app/dashboard
+- **پشکنینی داتابەیس:** https://heikali-edari-jujamnm-hashs-projects.vercel.app/api/health
+- **ئەلترناتیڤ:** https://workspace-brown-xi-18.vercel.app
+
+داتابەیس بەستراوە و داتای نموونە دانراوە (`products: 3`, `accounts: 15`).
+
+## دامەزراندنەوە لە Vercel
 
 1. Repo ببەستە بە [Vercel](https://vercel.com)
 2. **Storage → Postgres** دروست بکە و بە پرۆژەکە ببەستە (`DATABASE_URL`)
 3. Deploy بکە — خشتەکان و حیسابە بنەڕەتییەکان لە یەکەم داواکاریدا خۆکار دروست دەبن
 4. پشکنین: `/api/health` → دەبێ `ok: true` بگەڕێتەوە
-5. بکەرەوە: `/dashboard`
+5. (ئارەزوومەندانە) `POST /api/seed-demo` بۆ داتای نموونە
+6. بکەرەوە: `/dashboard`
 
 ## گەشەپێدانی local
 
