@@ -1,28 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Amiri, Noto_Sans_Arabic } from "next/font/google";
+import { Noto_Naskh_Arabic, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 
-const display = Amiri({
+const display = Noto_Naskh_Arabic({
   subsets: ["arabic", "latin"],
   variable: "--font-display",
-  weight: ["400", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const body = Noto_Sans_Arabic({
-  subsets: ["arabic"],
+  subsets: ["arabic", "latin"],
   variable: "--font-body",
   weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "نیشانە | Nishana — تێبینی AR لەڕێی کامێرا",
+  title: "هەژمار | سیستەمی ژمێریاری و کۆگا",
   description:
-    "کامێرای مۆبایلەکەت بخە سەر هەر شتێک، تێبینی بنووسە، و کاتێ دووبارە دەیبینیتەوە تێبینییەکەت پیشان دەدات.",
+    "سیستەمی تەواوی ژمێریاری، کۆگا، فرۆشتن، کڕین، خەرجی و ڕاپۆرت — بە کوردی سۆرانی.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
-    title: "نیشانە",
+    statusBarStyle: "default",
+    title: "هەژمار",
   },
   icons: {
     icon: "/icon.svg",
@@ -33,18 +33,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: "#0B1220",
-  viewportFit: "cover",
+  themeColor: "#0f6b6a",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ku" dir="rtl">
-      <body
-        className={`${display.variable} ${body.variable} font-sans antialiased text-mist-100`}
-      >
+      <body className={`${display.variable} ${body.variable} font-sans antialiased text-ink`}>
         {children}
       </body>
     </html>

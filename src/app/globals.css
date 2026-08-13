@@ -3,14 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --ink: #0b1220;
-  --ink-deep: #070b12;
-  --ember: #e8a35c;
-  --ember-soft: #f0c48a;
-  --mist: #f3f0e8;
-  --mist-dim: #9a9486;
-  --glass: rgba(11, 18, 32, 0.72);
-  --line: rgba(243, 240, 232, 0.14);
+  --bg: #eef3f6;
+  --bg-deep: #e2eaf0;
+  --surface: #ffffff;
+  --ink: #12202b;
+  --ink-soft: #3d5263;
+  --muted: #6b7f90;
+  --line: rgba(18, 32, 43, 0.1);
+  --teal: #0f6b6a;
+  --teal-deep: #0a4f4e;
+  --teal-soft: #d7efee;
+  --amber: #c47a1a;
+  --rose: #b42318;
+  --ok: #1b7a4a;
 }
 
 * {
@@ -20,8 +25,8 @@
 html,
 body {
   min-height: 100%;
-  background: var(--ink-deep);
-  color: var(--mist);
+  background: var(--bg);
+  color: var(--ink);
 }
 
 body {
@@ -29,15 +34,14 @@ body {
 }
 
 ::selection {
-  background: rgba(232, 163, 92, 0.35);
-  color: var(--mist);
+  background: rgba(15, 107, 106, 0.22);
 }
 
 .atmosphere {
   background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(232, 163, 92, 0.18), transparent 55%),
-    radial-gradient(900px 500px at 10% 20%, rgba(36, 72, 110, 0.45), transparent 50%),
-    linear-gradient(165deg, #0b1220 0%, #070b12 45%, #10182a 100%);
+    radial-gradient(900px 480px at 100% -10%, rgba(15, 107, 106, 0.16), transparent 55%),
+    radial-gradient(700px 420px at -5% 30%, rgba(196, 122, 26, 0.1), transparent 50%),
+    linear-gradient(165deg, #f5f8fa 0%, #e8eef3 45%, #eef3f6 100%);
 }
 
 .grain::before {
@@ -45,32 +49,106 @@ body {
   pointer-events: none;
   position: absolute;
   inset: 0;
-  opacity: 0.07;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mix-blend-mode: soft-light;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-.glass-panel {
-  background: var(--glass);
-  border: 1px solid var(--line);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.reticle {
-  box-shadow: 0 0 0 1px rgba(232, 163, 92, 0.35), 0 0 40px rgba(232, 163, 92, 0.12);
-}
-
-@keyframes lens-breathe {
+@keyframes soft-pulse {
   0%,
   100% {
-    opacity: 0.35;
+    opacity: 0.55;
   }
   50% {
-    opacity: 0.7;
+    opacity: 1;
   }
 }
 
-.lens-glow {
-  animation: lens-breathe 3.5s ease-in-out infinite;
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-glow {
+  animation: soft-pulse 4s ease-in-out infinite;
+}
+
+.input {
+  @apply w-full rounded-xl border border-[var(--line)] bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--teal)] focus:ring-2 focus:ring-[var(--teal-soft)];
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition active:scale-[0.98];
+}
+
+.btn-primary {
+  @apply btn bg-[var(--teal)] text-white hover:bg-[var(--teal-deep)];
+}
+
+.btn-ghost {
+  @apply btn border border-[var(--line)] bg-white text-[var(--ink)] hover:bg-[var(--bg)];
+}
+
+.btn-danger {
+  @apply btn bg-[var(--rose)] text-white hover:opacity-90;
+}
+
+.panel {
+  @apply rounded-2xl border border-[var(--line)] bg-white;
+}
+
+.table-wrap {
+  @apply overflow-x-auto;
+}
+
+.table {
+  @apply w-full text-sm;
+}
+
+.table th {
+  @apply whitespace-nowrap border-b border-[var(--line)] px-3 py-3 text-right font-semibold text-[var(--muted)];
+}
+
+.table td {
+  @apply border-b border-[var(--line)] px-3 py-3 align-middle;
+}
+
+.badge {
+  @apply inline-flex rounded-lg px-2 py-0.5 text-xs font-semibold;
+}
+
+.badge-ok {
+  @apply badge bg-emerald-50 text-[var(--ok)];
+}
+
+.badge-warn {
+  @apply badge bg-amber-50 text-[var(--amber)];
+}
+
+.badge-danger {
+  @apply badge bg-rose-50 text-[var(--rose)];
 }

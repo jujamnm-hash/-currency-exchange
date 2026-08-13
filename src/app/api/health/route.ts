@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { ensureSchema } from "@/lib/db-bootstrap";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -8,26 +8,30 @@ export async function GET() {
   try {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json(
-        {
-          ok: false,
-          database: "missing",
-          error: "DATABASE_URL دانەنراوە لە Vercel Environment Variables",
-        },
-        { status: 503 }
+        { ok: false, error: "DATABASE_URL دانەنراوە" },
+        { status: 500 },
       );
     }
     await ensureSchema();
-    const count = await prisma.spatialNote.count();
+    const [products, sales, accounts] = await Promise.all([
+      prisma.product.count(),
+      prisma.sale.count(),
+      prisma.account.count(),
+    ]);
     return NextResponse.json({
       ok: true,
-      database: "connected",
-      notes: count,
+      app: "هەژمار",
+      products,
+      sales,
+      accounts,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "unknown";
     return NextResponse.json(
-      { ok: false, database: "error", error: message },
-      { status: 503 }
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "هەڵەی نەزانراو",
+      },
+      { status: 500 },
     );
   }
 }
