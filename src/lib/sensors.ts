@@ -11,7 +11,15 @@ export type Orientation = {
   gamma: number | null;
 };
 
-export async function requestGeo(): Promise<GeoFix> {
+/** شوێنی نەناسراو — تەنها نیشانەی بینراو + ئامێر بۆ گەڕانەوە */
+export const FALLBACK_GEO: GeoFix = {
+  latitude: 0,
+  longitude: 0,
+  accuracy: 99999,
+  altitude: null,
+};
+
+export async function requestGeo(timeoutMs = 12000): Promise<GeoFix> {
   if (!navigator.geolocation) {
     throw new Error("GPS لەم ئامێرە پشتگیری ناکرێت");
   }
@@ -26,7 +34,7 @@ export async function requestGeo(): Promise<GeoFix> {
         });
       },
       (err) => reject(new Error(err.message || "ناتوانرێت شوێن بخوێنرێتەوە")),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 }
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 5000 }
     );
   });
 }
@@ -49,12 +57,12 @@ export function watchGeo(
       });
     },
     (err) => onError?.(err.message || "هەڵەی GPS"),
-    { enableHighAccuracy: true, timeout: 20000, maximumAge: 1500 }
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 3000 }
   );
   return () => navigator.geolocation.clearWatch(id);
 }
 
-/** iOS پێویستی بە مۆڵەتی تایبەت هەیە بۆ قطب‌نما */
+/** دەبێت لە کلیکی بەکارهێنەر بانگ بکرێت (iOS) */
 export async function ensureOrientationPermission(): Promise<boolean> {
   const DOE = DeviceOrientationEvent as unknown as {
     requestPermission?: () => Promise<"granted" | "denied">;
@@ -92,15 +100,36 @@ export function watchOrientation(onOrient: (o: Orientation) => void): () => void
 export async function startCamera(
   video: HTMLVideoElement
 ): Promise<MediaStream> {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: {
-      facingMode: { ideal: "environment" },
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("کامێرا لەم وێبگەڕە پشتگیری ناکرێت");
+  }
+  const attempts: MediaStreamConstraints[] = [
+    {
+      audio: false,
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
     },
-  });
-  video.srcObject = stream;
-  await video.play();
-  return stream;
+    { audio: false, video: { facingMode: "environment" } },
+    { audio: false, video: true },
+  ];
+
+  let lastError: unknown;
+  for (const constraints of attempts) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = stream;
+      video.setAttribute("playsinline", "true");
+      video.muted = true;
+      await video.play();
+      return stream;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  const msg =
+    lastError instanceof Error ? lastError.message : "ناتوانرێت کامێرا بکرێتەوە";
+  throw new Error(msg);
 }
