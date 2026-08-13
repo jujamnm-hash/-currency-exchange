@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ensureSchema } from "@/lib/db-bootstrap";
-import { distanceMeters, geoBoundingBox, headingDelta } from "@/lib/geo";
+import { distanceMeters, geoBoundingBox } from "@/lib/geo";
 import {
-  bestHashDistance,
   colorDistance,
+  consensusHashDistance,
   isConfidentMatch,
   matchScore,
   noteHashes,
@@ -37,8 +37,9 @@ export async function POST(req: NextRequest) {
     await ensureSchema();
     const data = matchSchema.parse(await req.json());
     const visualOnly = Boolean(data.visualOnly);
-    const radiusM = data.radiusM ?? (visualOnly ? 2000 : 120);
-    const minScore = data.minScore ?? 28;
+    const radiusM = data.radiusM ?? (visualOnly ? 2000 : 150);
+    // توند: تەنها هاوشێوەیی بەرزی بینراو
+    const minScore = data.minScore ?? 58;
 
     const queryHashes = Array.from(
       new Set(
@@ -48,9 +49,12 @@ export async function POST(req: NextRequest) {
       )
     );
 
-    // کاندید: هەموو تێبینییەکانی ئەم ئامێرە + نزیکەکان بە GPS
-    const byId = new Map<string, Awaited<ReturnType<typeof prisma.spatialNote.findMany>>[number]>();
+    const byId = new Map<
+      string,
+      Awaited<ReturnType<typeof prisma.spatialNote.findMany>>[number]
+    >();
 
+    // تەنها تێبینییەکانی هەمان ئامێر — نەک هەموو نزیکەکان
     if (data.deviceId) {
       const deviceNotes = await prisma.spatialNote.findMany({
         where: { deviceId: data.deviceId },
@@ -58,33 +62,17 @@ export async function POST(req: NextRequest) {
         orderBy: { createdAt: "desc" },
       });
       for (const n of deviceNotes) byId.set(n.id, n);
-    }
-
-    if (!visualOnly) {
+    } else if (!visualOnly) {
       const box = geoBoundingBox(data.latitude, data.longitude, radiusM);
       const geoNotes = await prisma.spatialNote.findMany({
         where: {
           latitude: { gte: box.minLat, lte: box.maxLat },
           longitude: { gte: box.minLon, lte: box.maxLon },
         },
-        take: 120,
+        take: 80,
         orderBy: { createdAt: "desc" },
       });
       for (const n of geoNotes) byId.set(n.id, n);
-    }
-
-    // تێبینییەکانی fallback (٠,٠) لەسەر هەمان ئامێر
-    if (data.deviceId) {
-      const orphan = await prisma.spatialNote.findMany({
-        where: {
-          deviceId: data.deviceId,
-          latitude: { gte: -0.01, lte: 0.01 },
-          longitude: { gte: -0.01, lte: 0.01 },
-        },
-        take: 50,
-        orderBy: { createdAt: "desc" },
-      });
-      for (const n of orphan) byId.set(n.id, n);
     }
 
     const candidates = Array.from(byId.values());
@@ -99,36 +87,34 @@ export async function POST(req: NextRequest) {
         );
         const profile = parseColorProfile(note.colorProfile);
         const stored = noteHashes(note.imageHash, profile);
-        const hashDist = bestHashDistance(queryHashes, stored);
+        const consensus = consensusHashDistance(queryHashes, stored);
         const cDist = colorDistance(data.colorProfile, profile);
-        const hDelta = headingDelta(data.heading, note.heading);
 
-        // ئەگەر GPSـی تێبینی یان ئێستا fallback بێت → تەنها بینراو
-        const noteIsFallback =
-          Math.abs(note.latitude) < 0.01 && Math.abs(note.longitude) < 0.01;
-        const queryIsFallback = visualOnly || (Math.abs(data.latitude) < 0.01 && Math.abs(data.longitude) < 0.01);
-        const visualPrimary = noteIsFallback || queryIsFallback || dist > radiusM;
-
-        // ئەگەر زۆر دوور بێت و هاش خراپ بێت — پشتگوێی بخە
-        if (!visualPrimary && dist > radiusM && hashDist > 18) return null;
-        if (visualPrimary && hashDist > 26 && cDist > 0.35) return null;
+        // دەروازەی توند — پێش خاڵدانان
+        if (consensus.best > 14) return null;
+        if (cDist > 0.28) return null;
+        if (consensus.best > 10 && consensus.closeHits < 2) return null;
 
         const score = matchScore({
-          hashDist,
+          hashDist: consensus.best,
           colorDist: cDist,
-          distanceM: visualPrimary ? 0 : dist,
-          headingDelta: hDelta,
+          distanceM: 0,
+          headingDelta: 90,
           radiusM,
-          visualPrimary,
+          visualPrimary: true,
+          avgHashDist: consensus.avgTop,
+          closeHits: consensus.closeHits,
         });
 
         if (
           !isConfidentMatch({
-            hashDist,
+            hashDist: consensus.best,
             colorDist: cDist,
-            distanceM: visualPrimary ? 0 : dist,
+            distanceM: dist,
             score,
             minScore,
+            avgHashDist: consensus.avgTop,
+            closeHits: consensus.closeHits,
           })
         ) {
           return null;
@@ -138,13 +124,15 @@ export async function POST(req: NextRequest) {
           ...note,
           score,
           distanceM: Math.round(dist * 10) / 10,
-          hashDist,
+          hashDist: consensus.best,
           colorDist: Math.round(cDist * 1000) / 1000,
+          avgHashDist: Math.round(consensus.avgTop * 10) / 10,
+          closeHits: consensus.closeHits,
         };
       })
       .filter(Boolean)
       .sort((a, b) => (b!.score - a!.score) || a!.hashDist - b!.hashDist)
-      .slice(0, 8);
+      .slice(0, 5);
 
     return NextResponse.json({
       matches,
@@ -152,6 +140,7 @@ export async function POST(req: NextRequest) {
       radiusM,
       visualOnly,
       minScore,
+      mode: "strict-object",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
