@@ -19,11 +19,12 @@ const matchSchema = z.object({
   longitude: z.number().min(-180).max(180),
   heading: z.number().nullable().optional(),
   imageHash: z.string().regex(/^[0-9a-f]{16}$/i),
-  hashes: z.array(z.string().regex(/^[0-9a-f]{16}$/i)).max(12).optional(),
+  hashes: z.array(z.string().regex(/^[0-9a-f]{16}$/i)).max(64).optional(),
   colorProfile: z.object({
     regions: z.array(z.number()).min(9),
     luma: z.array(z.number()).min(4),
     hashes: z.array(z.string()).optional(),
+    edges: z.array(z.number()).max(32).optional(),
   }),
   deviceId: z.string().optional(),
   radiusM: z.number().min(10).max(2000).optional(),

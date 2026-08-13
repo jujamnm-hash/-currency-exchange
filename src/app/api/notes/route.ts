@@ -17,7 +17,8 @@ const createSchema = z.object({
   colorProfile: z.object({
     regions: z.array(z.number()).min(9),
     luma: z.array(z.number()).min(4),
-    hashes: z.array(z.string()).max(12).optional(),
+    hashes: z.array(z.string()).max(64).optional(),
+    edges: z.array(z.number()).max(32).optional(),
   }),
   thumbnail: z.string().nullable().optional(),
   deviceId: z.string().min(8).max(80),

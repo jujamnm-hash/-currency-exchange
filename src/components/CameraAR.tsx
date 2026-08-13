@@ -5,6 +5,11 @@ import Link from "next/link";
 import { ArrowRight, Camera, Crosshair, List, Plus, WifiOff } from "lucide-react";
 import { getDeviceId } from "@/lib/device";
 import {
+  loadNoteCache,
+  replaceNoteCache,
+  saveNoteToCache,
+} from "@/lib/note-cache";
+import {
   ensureOrientationPermission,
   FALLBACK_GEO,
   requestGeo,
@@ -14,8 +19,13 @@ import {
   type GeoFix,
   type Orientation,
 } from "@/lib/sensors";
-import { captureFingerprint } from "@/lib/vision";
-import type { MatchedNote } from "@/lib/types";
+import {
+  captureFingerprint,
+  captureMultiFrameFingerprint,
+  isConfidentMatch,
+  scoreLocalNote,
+} from "@/lib/vision";
+import type { MatchedNote, SpatialNoteDTO } from "@/lib/types";
 import { MatchOverlay } from "./MatchOverlay";
 import { NoteComposer } from "./NoteComposer";
 
@@ -30,6 +40,10 @@ export function CameraAR() {
   const lastScanRef = useRef(0);
   const stopGeoRef = useRef<(() => void) | null>(null);
   const stopOrientRef = useRef<(() => void) | null>(null);
+  const cacheRef = useRef<SpatialNoteDTO[]>([]);
+  const streakRef = useRef<Map<string, number>>(new Map());
+  const missStreakRef = useRef(0);
+  const lockedIdRef = useRef<string | null>(null);
 
   const [started, setStarted] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -39,10 +53,12 @@ export function CameraAR() {
   const [matches, setMatches] = useState<MatchedNote[]>([]);
   const [composerOpen, setComposerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [holdSteady, setHoldSteady] = useState(false);
   const [viewNote, setViewNote] = useState<ViewNote>(null);
   const [geoOk, setGeoOk] = useState(false);
   const [heading, setHeading] = useState<number | null>(null);
   const [dbOk, setDbOk] = useState<boolean | null>(null);
+  const [locked, setLocked] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -52,23 +68,35 @@ export function CameraAR() {
     };
   }, []);
 
+  const syncCacheFromServer = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/notes?deviceId=${encodeURIComponent(getDeviceId())}`
+      );
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.notes)) {
+        cacheRef.current = data.notes;
+        replaceNoteCache(data.notes);
+      }
+    } catch {
+      cacheRef.current = loadNoteCache();
+    }
+  }, []);
+
   const beginSession = useCallback(async () => {
     setStarting(true);
     setError(null);
     setStatus("مۆڵەت و کامێرا...");
+    cacheRef.current = loadNoteCache();
 
     try {
       const health = await fetch("/api/health").then((r) => r.json());
       setDbOk(Boolean(health.ok));
-      if (!health.ok) {
-        setStatus("داتابەیس ئامادە نییە — دووبارە هەوڵ بدە");
-      }
     } catch {
       setDbOk(false);
     }
 
     try {
-      // لە کلیکی بەکارهێنەر — پێویستە بۆ iOS
       await ensureOrientationPermission();
 
       try {
@@ -80,17 +108,13 @@ export function CameraAR() {
         geoRef.current = null;
       }
 
-      if (!videoRef.current) {
-        throw new Error("ڤیدیۆ ئامادە نییە");
-      }
+      if (!videoRef.current) throw new Error("ڤیدیۆ ئامادە نییە");
       streamRef.current = await startCamera(videoRef.current);
       setReady(true);
       setStarted(true);
-      setStatus(
-        geoRef.current
-          ? "کامێرا ئامادەیە — + بۆ نوسین لەسەر شت"
-          : "کامێرا ئامادەیە — GPS نییە، هێشتا دەتوانیت بنووسیت"
-      );
+      setStatus("کامێرا ئامادەیە — شت بکە ناو بازنە · + بۆ نوسین");
+
+      void syncCacheFromServer();
 
       stopGeoRef.current?.();
       stopGeoRef.current = watchGeo(
@@ -116,7 +140,7 @@ export function CameraAR() {
     } finally {
       setStarting(false);
     }
-  }, []);
+  }, [syncCacheFromServer]);
 
   async function resolveGeoForSave(): Promise<GeoFix> {
     if (geoRef.current && geoRef.current.accuracy < 50000) {
@@ -132,13 +156,56 @@ export function CameraAR() {
     }
   }
 
+  function applyMatchResults(found: MatchedNote[]) {
+    if (found.length) {
+      missStreakRef.current = 0;
+      const top = found[0];
+      const prev = streakRef.current.get(top.id) ?? 0;
+      streakRef.current.set(top.id, prev + 1);
+      // پاککردنەوەی streak ـی ئەوانی تر
+      for (const [id] of streakRef.current) {
+        if (id !== top.id) streakRef.current.set(id, 0);
+      }
+
+      const streak = streakRef.current.get(top.id) ?? 0;
+      const shouldLock =
+        streak >= 2 || top.score >= 70 || top.hashDist <= 12;
+
+      if (shouldLock) {
+        lockedIdRef.current = top.id;
+        setLocked(true);
+      }
+
+      setMatches(found);
+      setStatus(
+        shouldLock || lockedIdRef.current === top.id
+          ? `🔒 نیشانە قفڵ کرا — ${top.title}`
+          : `✓ ${found.length} نیشانە — جێگیر بمێنەوە`
+      );
+      return;
+    }
+
+    missStreakRef.current += 1;
+    if (lockedIdRef.current && missStreakRef.current < 4) {
+      // قفڵ ماوە تا ٤ جار نەدۆزرێتەوە
+      setStatus("نیشانە قفڵکراو — کامێرا لەسەر شتەکە بهێڵەرەوە");
+      return;
+    }
+
+    lockedIdRef.current = null;
+    setLocked(false);
+    streakRef.current.clear();
+    setMatches((prev) => (prev.some((m) => m.score >= 95) ? prev : []));
+    setStatus("شتەکە بکە ناو بازنەی ناوەند · دوگمەی گەڕان");
+  }
+
   const scanOnce = useCallback(async () => {
     const video = videoRef.current;
-    if (!video || !ready || scanningRef.current) return;
+    if (!video || !ready || scanningRef.current || composerOpen || saving) return;
     if (video.readyState < 2) return;
 
     const now = Date.now();
-    if (now - lastScanRef.current < 900) return;
+    if (now - lastScanRef.current < 750) return;
     lastScanRef.current = now;
     scanningRef.current = true;
 
@@ -146,7 +213,40 @@ export function CameraAR() {
     const noGeo = !geoRef.current || geo.accuracy >= 50000;
 
     try {
-      const fp = captureFingerprint(video, { thumbnailMax: 140 });
+      const fp = captureFingerprint(video, { thumbnailMax: 120, rich: true });
+
+      // ١) گەڕانی خۆجێیی خێرا
+      const localHits: MatchedNote[] = cacheRef.current
+        .map((note) => {
+          const s = scoreLocalNote(fp, note, geoRef.current);
+          if (
+            !isConfidentMatch({
+              hashDist: s.hashDist,
+              colorDist: s.colorDist,
+              distanceM: 0,
+              score: s.score,
+              minScore: 30,
+            })
+          ) {
+            return null;
+          }
+          return {
+            ...note,
+            score: s.score,
+            distanceM: 0,
+            hashDist: s.hashDist,
+            colorDist: s.colorDist,
+          } as MatchedNote;
+        })
+        .filter(Boolean)
+        .sort((a, b) => b!.score - a!.score)
+        .slice(0, 5) as MatchedNote[];
+
+      if (localHits.length && localHits[0].score >= 55) {
+        applyMatchResults(localHits);
+      }
+
+      // ٢) گەڕانی سێرڤەر
       const res = await fetch("/api/match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -155,43 +255,48 @@ export function CameraAR() {
           longitude: geo.longitude,
           heading: orientRef.current.heading,
           imageHash: fp.imageHash,
-          hashes: fp.hashes,
-          colorProfile: fp.colorProfile,
+          hashes: fp.hashes.slice(0, 48),
+          colorProfile: {
+            ...fp.colorProfile,
+            hashes: fp.hashes.slice(0, 48),
+          },
           deviceId: getDeviceId(),
           radiusM: noGeo
             ? 2000
-            : Math.max(80, Math.min(250, (geo.accuracy || 40) * 3)),
+            : Math.max(100, Math.min(300, (geo.accuracy || 40) * 3.5)),
           visualOnly: noGeo,
-          minScore: 26,
+          minScore: 24,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "هەڵەی گەڕان");
-      const found = (data.matches || []) as MatchedNote[];
-      if (found.length) {
-        setMatches(found);
-        setStatus(`✓ ${found.length} نیشانە — دەستی لێبدە بۆ خوێندنەوە`);
-      } else {
-        // ماوەیەک نیشانەی پێشوو بهێڵەرەوە تا لەرزینی شاشە نایشارێتەوە
-        setMatches((prev) => {
-          if (!prev.length) return prev;
-          const aged = prev.filter((m) => m.score >= 90);
-          return aged;
-        });
-        setStatus("کامێرا ڕاست بکەرەوە سەر ناوەندی شتەکە · دوگمەی گەڕان");
+      const serverHits = (data.matches || []) as MatchedNote[];
+
+      // تێکەڵکردن
+      const byId = new Map<string, MatchedNote>();
+      for (const m of [...localHits, ...serverHits]) {
+        const prev = byId.get(m.id);
+        if (!prev || m.score > prev.score) byId.set(m.id, m);
       }
+      const merged = Array.from(byId.values()).sort(
+        (a, b) => b.score - a.score || a.hashDist - b.hashDist
+      );
+      applyMatchResults(merged);
     } catch {
-      setStatus("گەڕان سەرنەکەوت — دووبارە هەوڵ بدە");
+      // ئەگەر سێرڤەر شکستی هێنا، هەر کاش بەکاربهێنە
+      if (!matches.length) {
+        setStatus("گەڕان سەرنەکەوت — دووبارە هەوڵ بدە");
+      }
     } finally {
       scanningRef.current = false;
     }
-  }, [ready]);
+  }, [ready, composerOpen, saving, matches.length]);
 
   useEffect(() => {
     if (!ready) return;
     const id = window.setInterval(() => {
       void scanOnce();
-    }, 1100);
+    }, 900);
     return () => window.clearInterval(id);
   }, [ready, scanOnce]);
 
@@ -209,12 +314,16 @@ export function CameraAR() {
       throw new Error("کامێرا ئامادە نییە — چاوەڕوان بە تا وێنە دەردەکەوێت");
     }
     setSaving(true);
-    setStatus("پاشەکەوت...");
+    setHoldSteady(true);
+    setStatus("جێگیر بمێنەوە — چەند وێنە دەگیرێت...");
     try {
       const geo = await resolveGeoForSave();
-      const fp = captureFingerprint(video, { thumbnailMax: 120 });
-      const thumbnail =
-        fp.thumbnail.length > 100_000 ? null : fp.thumbnail;
+      const fp = await captureMultiFrameFingerprint(video, 4, 150);
+      setHoldSteady(false);
+      setStatus("پاشەکەوت...");
+
+      const thumbnail = fp.thumbnail.length > 100_000 ? null : fp.thumbnail;
+      const hashes = fp.hashes.slice(0, 48);
 
       const res = await fetch("/api/notes", {
         method: "POST",
@@ -228,7 +337,7 @@ export function CameraAR() {
           altitude: geo.altitude,
           heading: orientRef.current.heading,
           imageHash: fp.imageHash,
-          colorProfile: fp.colorProfile,
+          colorProfile: { ...fp.colorProfile, hashes },
           thumbnail,
           deviceId: getDeviceId(),
         }),
@@ -236,25 +345,31 @@ export function CameraAR() {
       const data = await res.json();
       if (!res.ok) {
         const detail =
-          typeof data?.details === "object"
-            ? JSON.stringify(data.details)
-            : "";
+          typeof data?.details === "object" ? JSON.stringify(data.details) : "";
         throw new Error(data.error || detail || "پاشەکەوت سەرنەکەوت");
       }
+
+      const note = data.note as SpatialNoteDTO;
+      saveNoteToCache(note);
+      cacheRef.current = [note, ...cacheRef.current.filter((n) => n.id !== note.id)];
+
       setComposerOpen(false);
-      setStatus("✓ نیشانە جێگیر کرا — کامێرا لابرا و دووبارە بخەرە سەری");
+      lockedIdRef.current = note.id;
+      setLocked(true);
+      streakRef.current.set(note.id, 5);
+      setStatus("✓ جێگیر کرا — کامێرا لابەرە و دووبارە بخەرە سەر شتەکە");
       setMatches([
         {
-          ...data.note,
+          ...note,
           score: 100,
           distanceM: 0,
           hashDist: 0,
           colorDist: 0,
         },
       ]);
-      // دوای پاشەکەوت خێرا دووبارە بگەڕێ بۆ دڵنیابوون
-      window.setTimeout(() => void scanOnce(), 800);
+      window.setTimeout(() => void scanOnce(), 600);
     } finally {
+      setHoldSteady(false);
       setSaving(false);
     }
   }
@@ -295,6 +410,11 @@ export function CameraAR() {
               {geoOk ? "GPS" : "بێ GPS"}
             </span>
           )}
+          {locked && (
+            <span className="glass-panel rounded-full px-2.5 py-1 text-[11px] text-ember-300">
+              قفڵ
+            </span>
+          )}
           {dbOk === false && (
             <span className="glass-panel flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] text-red-300">
               <WifiOff size={12} /> DB
@@ -310,11 +430,17 @@ export function CameraAR() {
         </div>
       </header>
 
-      <MatchOverlay matches={matches} onSelect={setViewNote} />
+      <MatchOverlay matches={matches} locked={locked} onSelect={setViewNote} />
 
       {ready && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <div className="reticle animate-reticle-pulse relative h-44 w-44 rounded-full border border-ember-400/50">
+          <div
+            className={`reticle relative h-44 w-44 rounded-full border ${
+              locked
+                ? "border-ember-300 shadow-[0_0_40px_rgba(232,163,92,0.45)]"
+                : "animate-reticle-pulse border-ember-400/50"
+            }`}
+          >
             <div className="absolute inset-3 rounded-full border border-dashed border-white/20" />
             <div className="absolute left-1/2 top-0 h-3 w-px -translate-x-1/2 bg-ember-400" />
             <div className="absolute bottom-0 left-1/2 h-3 w-px -translate-x-1/2 bg-ember-400" />
@@ -328,7 +454,15 @@ export function CameraAR() {
         </div>
       )}
 
-      {/* شاشەی دەستپێکردن — کلیک پێویستە بۆ مۆڵەتی iOS */}
+      {holdSteady && (
+        <div className="pointer-events-none absolute inset-0 z-[35] flex items-center justify-center bg-ink-950/40">
+          <div className="glass-panel rounded-2xl px-5 py-4 text-center">
+            <p className="font-display text-2xl text-ember-400">جێگیر بمێنەوە</p>
+            <p className="mt-1 text-xs text-mist-300">وێنەی شتەکە دەگیرێت...</p>
+          </div>
+        </div>
+      )}
+
       {!started && !error && (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-ink-950/92 px-6 text-center backdrop-blur-sm">
           <p className="font-display text-5xl text-ember-400">نیشانە</p>
@@ -355,14 +489,17 @@ export function CameraAR() {
         <div className="absolute inset-x-0 bottom-0 z-30 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6">
           <p className="mb-3 text-center text-xs text-mist-200/90">{status}</p>
           {heading != null && (
-            <p className="mb-3 text-center text-[11px] text-mist-500">
+            <p className="mb-2 text-center text-[11px] text-mist-500">
               ئاراستە: {Math.round(heading)}°
             </p>
           )}
           <div className="mx-auto flex max-w-md items-center justify-center gap-4">
             <button
               type="button"
-              onClick={() => void scanOnce()}
+              onClick={() => {
+                missStreakRef.current = 0;
+                void scanOnce();
+              }}
               className="glass-panel min-h-12 rounded-full px-4 py-3 text-sm text-mist-100"
             >
               گەڕان
@@ -385,7 +522,7 @@ export function CameraAR() {
             </button>
           </div>
           <p className="mt-3 text-center text-[11px] text-mist-500">
-            دوگمەی نارنجی + = نوسین لەسەر شتەکە
+            + نوسین · شت لە ناوەندی بازنە · جێگیر بمێنەوە
           </p>
         </div>
       )}
@@ -395,9 +532,6 @@ export function CameraAR() {
           <div className="max-w-sm">
             <p className="font-display text-3xl text-ember-400">کامێرا</p>
             <p className="mt-3 text-sm text-mist-300">{error}</p>
-            <p className="mt-2 text-xs text-mist-500">
-              Settings → Safari/Chrome → Camera = Allow. پاشان دووبارە هەوڵ بدە.
-            </p>
             <button
               type="button"
               onClick={() => {
