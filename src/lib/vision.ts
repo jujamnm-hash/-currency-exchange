@@ -1,11 +1,14 @@
-/** نیشانەی بینراو — چەند هاش + ڕەنگ + لێواری بۆ ناسینەوەی خۆڕاگرتر */
+/** ناسنامەی بینراوی شت — pHash + پاتچ + هاش + ڕەنگ + لێوار */
 
 export type ColorProfile = {
   regions: number[];
   luma: number[];
   hashes?: string[];
-  /** تۆڕی وزەی لێوار (١٦ نرخ) */
   edges?: number[];
+  /** perceptual hash ١٦ hex */
+  phash?: string;
+  /** پاتچی ١٦×١٦ خۆلێکراو (٠–٢٥٥) بۆ بەراوردکردنی قاڵب */
+  patch?: number[];
 };
 
 export type VisualFingerprint = {
@@ -17,15 +20,9 @@ export type VisualFingerprint = {
 
 const HASH_SIZE = 9;
 const REGION_GRID = 3;
-const CROP_SCALES = [0.5, 0.68, 0.82, 0.92];
-/** ئۆفسێتەکان بۆ خۆڕاگری جوڵەی کەمی کامێرا */
-const OFFSETS: Array<[number, number]> = [
-  [0, 0],
-  [0.04, 0],
-  [-0.04, 0],
-  [0, 0.04],
-  [0, -0.04],
-];
+const PATCH_SIZE = 16;
+/** تەنها ناوەند — ئۆفسێت فڕۆشەپۆزیتیڤ زیاد دەکات */
+const CROP_SCALES = [0.62, 0.72, 0.84];
 
 function clampByte(n: number) {
   return Math.max(0, Math.min(255, Math.round(n)));
@@ -39,69 +36,90 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** وێنە لە ڤیدیۆ بگرە و fingerprint دروست بکە */
+function centerCrop(
+  video: HTMLVideoElement,
+  scale: number
+): { sx: number; sy: number; side: number } {
+  const w = video.videoWidth;
+  const h = video.videoHeight;
+  const side = Math.min(w, h) * scale;
+  return { sx: (w - side) / 2, sy: (h - side) / 2, side };
+}
+
+/** وێنە لە ڤیدیۆ بگرە و ناسنامە دروست بکە */
 export function captureFingerprint(
   video: HTMLVideoElement,
   options?: { thumbnailMax?: number; rich?: boolean }
 ): VisualFingerprint {
-  const thumbMax = options?.thumbnailMax ?? 160;
+  const thumbMax = options?.thumbnailMax ?? 140;
   const rich = options?.rich !== false;
   const w = video.videoWidth;
   const h = video.videoHeight;
-  if (!w || !h) {
-    throw new Error("کامێرا ئامادە نییە");
-  }
+  if (!w || !h) throw new Error("کامێرا ئامادە نییە");
 
   const hashes: string[] = [];
-  const offsets = rich ? OFFSETS : ([[0, 0]] as Array<[number, number]>);
   const scales = rich ? CROP_SCALES : [0.72];
 
   for (const scale of scales) {
-    for (const [ox, oy] of offsets) {
-      const side = Math.min(w, h) * scale;
-      let sx = (w - side) / 2 + ox * w;
-      let sy = (h - side) / 2 + oy * h;
-      sx = Math.max(0, Math.min(w - side, sx));
-      sy = Math.max(0, Math.min(h - side, sy));
-
-      const hashCanvas = document.createElement("canvas");
-      hashCanvas.width = HASH_SIZE;
-      hashCanvas.height = HASH_SIZE;
-      const hctx = hashCanvas.getContext("2d", { willReadFrequently: true })!;
-      hctx.drawImage(video, sx, sy, side, side, 0, 0, HASH_SIZE, HASH_SIZE);
-      const hashData = hctx.getImageData(0, 0, HASH_SIZE, HASH_SIZE).data;
-      hashes.push(computeDHash(hashData, HASH_SIZE));
-      hashes.push(computeAHash(hashData, HASH_SIZE));
-    }
+    const { sx, sy, side } = centerCrop(video, scale);
+    const hashCanvas = document.createElement("canvas");
+    hashCanvas.width = HASH_SIZE;
+    hashCanvas.height = HASH_SIZE;
+    const hctx = hashCanvas.getContext("2d", { willReadFrequently: true })!;
+    hctx.drawImage(video, sx, sy, side, side, 0, 0, HASH_SIZE, HASH_SIZE);
+    const hashData = hctx.getImageData(0, 0, HASH_SIZE, HASH_SIZE).data;
+    hashes.push(computeDHash(hashData, HASH_SIZE));
+    hashes.push(computeAHash(hashData, HASH_SIZE));
   }
 
-  const uniqueHashes = Array.from(new Set(hashes));
+  // پاتچ + pHash لە ناوەندی سەرەکی
+  const main = centerCrop(video, 0.72);
+  const patchCanvas = document.createElement("canvas");
+  patchCanvas.width = 32;
+  patchCanvas.height = 32;
+  const pctx = patchCanvas.getContext("2d", { willReadFrequently: true })!;
+  pctx.drawImage(video, main.sx, main.sy, main.side, main.side, 0, 0, 32, 32);
+  const patch32 = pctx.getImageData(0, 0, 32, 32).data;
+  const phash = computePHash(patch32, 32);
+  hashes.push(phash);
 
-  const mainSide = Math.min(w, h) * 0.72;
-  const sx = (w - mainSide) / 2;
-  const sy = (h - mainSide) / 2;
+  const patch = extractPatch(patch32, 32, PATCH_SIZE);
+
   const regionCanvas = document.createElement("canvas");
   const regionSize = 48;
   regionCanvas.width = regionSize;
   regionCanvas.height = regionSize;
   const rctx = regionCanvas.getContext("2d", { willReadFrequently: true })!;
-  rctx.drawImage(video, sx, sy, mainSide, mainSide, 0, 0, regionSize, regionSize);
+  rctx.drawImage(
+    video,
+    main.sx,
+    main.sy,
+    main.side,
+    main.side,
+    0,
+    0,
+    regionSize,
+    regionSize
+  );
   const regionData = rctx.getImageData(0, 0, regionSize, regionSize).data;
   const colorProfile = computeColorProfile(regionData, regionSize);
+  const uniqueHashes = Array.from(new Set(hashes));
   colorProfile.hashes = uniqueHashes;
   colorProfile.edges = computeEdgeGrid(regionData, regionSize);
+  colorProfile.phash = phash;
+  colorProfile.patch = patch;
 
   const thumbCanvas = document.createElement("canvas");
-  const tScale = thumbMax / mainSide;
-  thumbCanvas.width = Math.round(mainSide * tScale);
-  thumbCanvas.height = Math.round(mainSide * tScale);
+  const tScale = thumbMax / main.side;
+  thumbCanvas.width = Math.round(main.side * tScale);
+  thumbCanvas.height = Math.round(main.side * tScale);
   const tctx = thumbCanvas.getContext("2d")!;
   tctx.drawImage(
     video,
-    sx,
-    sy,
-    mainSide,
-    mainSide,
+    main.sx,
+    main.sy,
+    main.side,
+    main.side,
     0,
     0,
     thumbCanvas.width,
@@ -117,11 +135,10 @@ export function captureFingerprint(
   };
 }
 
-/** ٣–٥ چوارچێوە بگرە و یەکیان بکە — باشتر بۆ پاشەکەوت */
 export async function captureMultiFrameFingerprint(
   video: HTMLVideoElement,
-  frames = 4,
-  gapMs = 140
+  frames = 5,
+  gapMs = 120
 ): Promise<VisualFingerprint> {
   const collected: VisualFingerprint[] = [];
   for (let i = 0; i < frames; i++) {
@@ -143,12 +160,18 @@ export function mergeFingerprints(list: VisualFingerprint[]): VisualFingerprint 
   const luma = new Array(lumaLen).fill(0);
   const edgeLen = list[0].colorProfile.edges?.length ?? 0;
   const edges = new Array(edgeLen).fill(0);
+  const patchLen = list[0].colorProfile.patch?.length ?? 0;
+  const patch = new Array(patchLen).fill(0);
+  const phashes = list.map((f) => f.colorProfile.phash).filter(Boolean) as string[];
 
   for (const f of list) {
     for (let i = 0; i < regionLen; i++) regions[i] += f.colorProfile.regions[i] ?? 0;
     for (let i = 0; i < lumaLen; i++) luma[i] += f.colorProfile.luma[i] ?? 0;
     if (edgeLen && f.colorProfile.edges) {
       for (let i = 0; i < edgeLen; i++) edges[i] += f.colorProfile.edges[i] ?? 0;
+    }
+    if (patchLen && f.colorProfile.patch) {
+      for (let i = 0; i < patchLen; i++) patch[i] += f.colorProfile.patch[i] ?? 0;
     }
   }
   const n = list.length;
@@ -157,34 +180,36 @@ export function mergeFingerprints(list: VisualFingerprint[]): VisualFingerprint 
     luma: luma.map((v) => Math.round((v / n) * 1000) / 1000),
     hashes: allHashes,
     edges: edgeLen ? edges.map((v) => Math.round((v / n) * 1000) / 1000) : undefined,
+    phash: phashes[0],
+    patch: patchLen ? patch.map((v) => clampByte(v / n)) : undefined,
   };
 
-  // باشترین thumbnail — یەکەم
   return {
     imageHash: allHashes[0],
     colorProfile: profile,
-    thumbnail: list[0].thumbnail,
+    thumbnail: list[Math.floor(list.length / 2)].thumbnail,
     hashes: allHashes,
   };
 }
 
-function computeDHash(data: Uint8ClampedArray, size: number): string {
+function rgbaToGray(data: Uint8ClampedArray, size: number): number[] {
   const gray: number[] = [];
   for (let i = 0; i < size * size; i++) {
     const o = i * 4;
     gray.push(luminance(data[o], data[o + 1], data[o + 2]));
   }
+  return gray;
+}
+
+function computeDHash(data: Uint8ClampedArray, size: number): string {
+  const gray = rgbaToGray(data, size);
   let bits = "";
   for (let y = 0; y < size - 1; y++) {
     for (let x = 0; x < size - 1; x++) {
       bits += gray[y * size + x] < gray[y * size + x + 1] ? "1" : "0";
     }
   }
-  let hex = "";
-  for (let i = 0; i < 64; i += 4) {
-    hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
-  }
-  return hex;
+  return bitsToHex(bits, 64);
 }
 
 function computeAHash(data: Uint8ClampedArray, size: number): string {
@@ -202,12 +227,111 @@ function computeAHash(data: Uint8ClampedArray, size: number): string {
   const avg = sum / n;
   let bits = "";
   for (const v of gray) bits += v >= avg ? "1" : "0";
-  while (bits.length < 64) bits += "0";
+  return bitsToHex(bits, 64);
+}
+
+/** pHash سادە — DCT ـی ٨×٨ لەسەر ٣٢×٣٢ */
+function computePHash(data: Uint8ClampedArray, size: number): string {
+  const gray = rgbaToGray(data, size);
+  // بچووککردن بۆ ٨×٨ بە ناوەندگیری
+  const small = 8;
+  const cell = size / small;
+  const vals: number[] = [];
+  for (let y = 0; y < small; y++) {
+    for (let x = 0; x < small; x++) {
+      let s = 0;
+      let n = 0;
+      const x0 = Math.floor(x * cell);
+      const y0 = Math.floor(y * cell);
+      const x1 = Math.floor((x + 1) * cell);
+      const y1 = Math.floor((y + 1) * cell);
+      for (let yy = y0; yy < y1; yy++) {
+        for (let xx = x0; xx < x1; xx++) {
+          s += gray[yy * size + xx];
+          n++;
+        }
+      }
+      vals.push(s / (n || 1));
+    }
+  }
+  // DCT ـی جیاکاری نزیکەیی: بەراورد لەگەڵ ناوەند (بێ DC)
+  const mean =
+    vals.slice(1).reduce((a, b) => a + b, 0) / Math.max(1, vals.length - 1);
+  let bits = "";
+  for (let i = 0; i < 64; i++) {
+    bits += (vals[i] ?? 0) >= mean ? "1" : "0";
+  }
+  return bitsToHex(bits, 64);
+}
+
+function bitsToHex(bits: string, len: number): string {
+  let b = bits;
+  while (b.length < len) b += "0";
   let hex = "";
-  for (let i = 0; i < 64; i += 4) {
-    hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
+  for (let i = 0; i < len; i += 4) {
+    hex += parseInt(b.slice(i, i + 4), 2).toString(16);
   }
   return hex;
+}
+
+/** پاتچی خۆلێکراو (mean/std) بۆ خۆڕاگری ڕووناکی */
+function extractPatch(
+  data: Uint8ClampedArray,
+  srcSize: number,
+  outSize: number
+): number[] {
+  const gray = rgbaToGray(data, srcSize);
+  const cell = srcSize / outSize;
+  const patch: number[] = [];
+  for (let y = 0; y < outSize; y++) {
+    for (let x = 0; x < outSize; x++) {
+      let s = 0;
+      let n = 0;
+      const x0 = Math.floor(x * cell);
+      const y0 = Math.floor(y * cell);
+      const x1 = Math.floor((x + 1) * cell);
+      const y1 = Math.floor((y + 1) * cell);
+      for (let yy = y0; yy < y1; yy++) {
+        for (let xx = x0; xx < x1; xx++) {
+          s += gray[yy * srcSize + xx];
+          n++;
+        }
+      }
+      patch.push(s / (n || 1));
+    }
+  }
+  const mean = patch.reduce((a, b) => a + b, 0) / patch.length;
+  let varSum = 0;
+  for (const v of patch) varSum += (v - mean) ** 2;
+  const std = Math.sqrt(varSum / patch.length) || 1;
+  return patch.map((v) => clampByte(((v - mean) / std) * 40 + 128));
+}
+
+/** هاوشێوەیی پاتچ ٠–١ (normalized correlation) */
+export function patchSimilarity(a?: number[], b?: number[]): number {
+  if (!a?.length || !b?.length) return 0;
+  const len = Math.min(a.length, b.length);
+  let sumA = 0,
+    sumB = 0;
+  for (let i = 0; i < len; i++) {
+    sumA += a[i];
+    sumB += b[i];
+  }
+  const meanA = sumA / len;
+  const meanB = sumB / len;
+  let num = 0,
+    denA = 0,
+    denB = 0;
+  for (let i = 0; i < len; i++) {
+    const da = a[i] - meanA;
+    const db = b[i] - meanB;
+    num += da * db;
+    denA += da * da;
+    denB += db * db;
+  }
+  const den = Math.sqrt(denA * denB) || 1;
+  const corr = num / den; // -1..1
+  return Math.max(0, Math.min(1, (corr + 1) / 2));
 }
 
 function computeColorProfile(data: Uint8ClampedArray, size: number): ColorProfile {
@@ -245,7 +369,6 @@ function computeColorProfile(data: Uint8ClampedArray, size: number): ColorProfil
   };
 }
 
-/** تۆڕی ٤×٤ وزەی لێوار */
 function computeEdgeGrid(data: Uint8ClampedArray, size: number): number[] {
   const grid = 4;
   const cell = Math.floor(size / grid);
@@ -305,10 +428,6 @@ export function bestHashDistance(query: string[], stored: string[]): number {
   return best;
 }
 
-/**
- * دووری هاش بە کۆدەنگی — کەمتر فڕۆشەپۆزیتیڤ
- * best تەنها بەس نییە؛ دەبێت چەند هاش نزیک بن.
- */
 export function consensusHashDistance(
   query: string[],
   stored: string[]
@@ -326,9 +445,9 @@ export function consensusHashDistance(
   }
   perQuery.sort((a, b) => a - b);
   const best = perQuery[0] ?? 64;
-  const topN = perQuery.slice(0, Math.min(5, perQuery.length));
+  const topN = perQuery.slice(0, Math.min(4, perQuery.length));
   const avgTop = topN.reduce((a, b) => a + b, 0) / topN.length;
-  const closeHits = perQuery.filter((d) => d <= 12).length;
+  const closeHits = perQuery.filter((d) => d <= 10).length;
   return { best, avgTop, closeHits };
 }
 
@@ -360,7 +479,9 @@ export function parseColorProfile(raw: string): ColorProfile {
 }
 
 export function noteHashes(imageHash: string, profile: ColorProfile): string[] {
-  const list = [imageHash, ...(profile.hashes ?? [])].filter(Boolean);
+  const list = [imageHash, ...(profile.hashes ?? []), profile.phash ?? ""].filter(
+    Boolean
+  );
   return Array.from(new Set(list.map((h) => h.toLowerCase())));
 }
 
@@ -373,23 +494,29 @@ export function matchScore(opts: {
   visualPrimary?: boolean;
   avgHashDist?: number;
   closeHits?: number;
+  patchSim?: number;
+  phashDist?: number;
 }): number {
-  const hashScore = Math.max(0, 1 - opts.hashDist / 16);
+  const hashScore = Math.max(0, 1 - opts.hashDist / 14);
   const avgScore =
-    opts.avgHashDist != null ? Math.max(0, 1 - opts.avgHashDist / 18) : hashScore;
-  const colorScore = Math.max(0, 1 - opts.colorDist / 0.28);
-  const hitBonus = Math.min(1, (opts.closeHits ?? 0) / 4);
+    opts.avgHashDist != null ? Math.max(0, 1 - opts.avgHashDist / 16) : hashScore;
+  const colorScore = Math.max(0, 1 - opts.colorDist / 0.25);
+  const hitBonus = Math.min(1, (opts.closeHits ?? 0) / 3);
+  const patchScore = opts.patchSim ?? 0.5;
+  const phashScore =
+    opts.phashDist != null ? Math.max(0, 1 - opts.phashDist / 14) : hashScore;
 
-  // GPS ناتوانێت بە تەنها match دروست بکات — تەنها بینراو
   const combined =
-    hashScore * 0.45 + avgScore * 0.2 + colorScore * 0.25 + hitBonus * 0.1;
+    hashScore * 0.28 +
+    avgScore * 0.12 +
+    colorScore * 0.15 +
+    hitBonus * 0.08 +
+    patchScore * 0.25 +
+    phashScore * 0.12;
+
   return Math.round(combined * 1000) / 10;
 }
 
-/**
- * تەنها کاتێ ڕاستە کە شتەکە بەڕاستی هاوشێوەی بینراو بێت.
- * نزیکبوونی GPS بەس نییە.
- */
 export function isConfidentMatch(opts: {
   hashDist: number;
   colorDist: number;
@@ -398,25 +525,51 @@ export function isConfidentMatch(opts: {
   minScore: number;
   avgHashDist?: number;
   closeHits?: number;
+  patchSim?: number;
+  phashDist?: number;
 }): boolean {
+  if (opts.score < opts.minScore) return false;
+
+  const patch = opts.patchSim;
+  const ph = opts.phashDist;
   const avg = opts.avgHashDist ?? opts.hashDist;
   const hits = opts.closeHits ?? 0;
 
-  const strongVisual =
-    opts.hashDist <= 10 && opts.colorDist <= 0.18 && opts.score >= opts.minScore;
-  const consensusVisual =
-    opts.hashDist <= 12 &&
-    avg <= 14 &&
-    hits >= 2 &&
-    opts.colorDist <= 0.2 &&
-    opts.score >= opts.minScore;
-  const veryStrongHash =
-    opts.hashDist <= 7 && opts.colorDist <= 0.25 && opts.score >= opts.minScore - 5;
+  // ئەگەر پاتچ هەبێت — دەبێت باش بێت
+  if (typeof patch === "number") {
+    if (patch < 0.72) return false;
+    return (
+      opts.hashDist <= 12 &&
+      opts.colorDist <= 0.22 &&
+      (ph == null || ph <= 14) &&
+      (patch >= 0.78 || (opts.hashDist <= 9 && hits >= 2))
+    );
+  }
 
-  return strongVisual || consensusVisual || veryStrongHash;
+  // بێ پاتچ (تێبینی کۆن)
+  return (
+    opts.hashDist <= 9 &&
+    avg <= 12 &&
+    hits >= 2 &&
+    opts.colorDist <= 0.18 &&
+    (ph == null || ph <= 12)
+  );
 }
 
-/** گەڕانی خێرای خۆجێیی — توند؛ تەنها هەمان شت */
+/** ئەگەر دوو نیشانە نزیک بن لە خاڵ — ڕەت بکەرەوە (ناڕوون) */
+export function rejectAmbiguous<T extends { score: number; hashDist: number }>(
+  matches: T[],
+  minGap = 12
+): T[] {
+  if (matches.length < 2) return matches;
+  const [a, b] = matches;
+  if (a.score - b.score < minGap && Math.abs(a.hashDist - b.hashDist) <= 3) {
+    // ناڕوونە کام شتە — هیچ پیشان مەدە
+    return [];
+  }
+  return matches;
+}
+
 export function scoreLocalNote(
   fp: VisualFingerprint,
   note: {
@@ -424,19 +577,26 @@ export function scoreLocalNote(
     colorProfile: string;
     latitude: number;
     longitude: number;
-  },
-  _geo?: { latitude: number; longitude: number } | null
+  }
 ): {
   score: number;
   hashDist: number;
   colorDist: number;
   avgHashDist: number;
   closeHits: number;
+  patchSim: number;
+  phashDist: number;
 } {
   const profile = parseColorProfile(note.colorProfile);
   const stored = noteHashes(note.imageHash, profile);
   const consensus = consensusHashDistance(fp.hashes, stored);
   const cDist = colorDistance(fp.colorProfile, profile);
+  const patchSim = patchSimilarity(fp.colorProfile.patch, profile.patch);
+  const phashDist =
+    fp.colorProfile.phash && profile.phash
+      ? hammingDistanceHex(fp.colorProfile.phash, profile.phash)
+      : consensus.best;
+
   const score = matchScore({
     hashDist: consensus.best,
     colorDist: cDist,
@@ -446,12 +606,17 @@ export function scoreLocalNote(
     visualPrimary: true,
     avgHashDist: consensus.avgTop,
     closeHits: consensus.closeHits,
+    patchSim,
+    phashDist,
   });
+
   return {
     score,
     hashDist: consensus.best,
     colorDist: cDist,
     avgHashDist: consensus.avgTop,
     closeHits: consensus.closeHits,
+    patchSim,
+    phashDist,
   };
 }

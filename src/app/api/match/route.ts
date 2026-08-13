@@ -6,10 +6,13 @@ import { distanceMeters, geoBoundingBox } from "@/lib/geo";
 import {
   colorDistance,
   consensusHashDistance,
+  hammingDistanceHex,
   isConfidentMatch,
   matchScore,
   noteHashes,
   parseColorProfile,
+  patchSimilarity,
+  rejectAmbiguous,
 } from "@/lib/vision";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +28,8 @@ const matchSchema = z.object({
     luma: z.array(z.number()).min(4),
     hashes: z.array(z.string()).optional(),
     edges: z.array(z.number()).max(32).optional(),
+    phash: z.string().optional(),
+    patch: z.array(z.number()).max(512).optional(),
   }),
   deviceId: z.string().optional(),
   radiusM: z.number().min(10).max(2000).optional(),
@@ -38,12 +43,16 @@ export async function POST(req: NextRequest) {
     const data = matchSchema.parse(await req.json());
     const visualOnly = Boolean(data.visualOnly);
     const radiusM = data.radiusM ?? (visualOnly ? 2000 : 150);
-    // توند: تەنها هاوشێوەیی بەرزی بینراو
-    const minScore = data.minScore ?? 58;
+    const minScore = data.minScore ?? 62;
 
     const queryHashes = Array.from(
       new Set(
-        [data.imageHash, ...(data.hashes ?? []), ...(data.colorProfile.hashes ?? [])]
+        [
+          data.imageHash,
+          ...(data.hashes ?? []),
+          ...(data.colorProfile.hashes ?? []),
+          data.colorProfile.phash ?? "",
+        ]
           .filter(Boolean)
           .map((h) => h.toLowerCase())
       )
@@ -54,7 +63,6 @@ export async function POST(req: NextRequest) {
       Awaited<ReturnType<typeof prisma.spatialNote.findMany>>[number]
     >();
 
-    // تەنها تێبینییەکانی هەمان ئامێر — نەک هەموو نزیکەکان
     if (data.deviceId) {
       const deviceNotes = await prisma.spatialNote.findMany({
         where: { deviceId: data.deviceId },
@@ -77,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     const candidates = Array.from(byId.values());
 
-    const matches = candidates
+    const scored = candidates
       .map((note) => {
         const dist = distanceMeters(
           data.latitude,
@@ -89,11 +97,17 @@ export async function POST(req: NextRequest) {
         const stored = noteHashes(note.imageHash, profile);
         const consensus = consensusHashDistance(queryHashes, stored);
         const cDist = colorDistance(data.colorProfile, profile);
+        const patchSim = patchSimilarity(data.colorProfile.patch, profile.patch);
+        const phashDist =
+          data.colorProfile.phash && profile.phash
+            ? hammingDistanceHex(data.colorProfile.phash, profile.phash)
+            : consensus.best;
 
-        // دەروازەی توند — پێش خاڵدانان
-        if (consensus.best > 14) return null;
-        if (cDist > 0.28) return null;
-        if (consensus.best > 10 && consensus.closeHits < 2) return null;
+        // دەروازەی سەرەتایی توند
+        if (consensus.best > 12) return null;
+        if (cDist > 0.26) return null;
+        if (profile.patch?.length && patchSim < 0.7) return null;
+        if (profile.phash && phashDist > 16) return null;
 
         const score = matchScore({
           hashDist: consensus.best,
@@ -104,6 +118,8 @@ export async function POST(req: NextRequest) {
           visualPrimary: true,
           avgHashDist: consensus.avgTop,
           closeHits: consensus.closeHits,
+          patchSim,
+          phashDist,
         });
 
         if (
@@ -115,6 +131,8 @@ export async function POST(req: NextRequest) {
             minScore,
             avgHashDist: consensus.avgTop,
             closeHits: consensus.closeHits,
+            patchSim,
+            phashDist,
           })
         ) {
           return null;
@@ -126,13 +144,18 @@ export async function POST(req: NextRequest) {
           distanceM: Math.round(dist * 10) / 10,
           hashDist: consensus.best,
           colorDist: Math.round(cDist * 1000) / 1000,
-          avgHashDist: Math.round(consensus.avgTop * 10) / 10,
-          closeHits: consensus.closeHits,
+          patchSim: Math.round(patchSim * 1000) / 1000,
+          phashDist,
         };
       })
       .filter(Boolean)
-      .sort((a, b) => (b!.score - a!.score) || a!.hashDist - b!.hashDist)
-      .slice(0, 5);
+      .sort((a, b) => (b!.score - a!.score) || a!.hashDist - b!.hashDist) as Array<{
+      score: number;
+      hashDist: number;
+      [k: string]: unknown;
+    }>;
+
+    const matches = rejectAmbiguous(scored, 12).slice(0, 3);
 
     return NextResponse.json({
       matches,
@@ -140,7 +163,7 @@ export async function POST(req: NextRequest) {
       radiusM,
       visualOnly,
       minScore,
-      mode: "strict-object",
+      mode: "strict-identity-v2",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

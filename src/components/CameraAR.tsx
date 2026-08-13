@@ -23,6 +23,7 @@ import {
   captureFingerprint,
   captureMultiFrameFingerprint,
   isConfidentMatch,
+  rejectAmbiguous,
   scoreLocalNote,
 } from "@/lib/vision";
 import type { MatchedNote, SpatialNoteDTO } from "@/lib/types";
@@ -167,9 +168,9 @@ export function CameraAR() {
       }
 
       const streak = streakRef.current.get(top.id) ?? 0;
-      // قفڵ تەنها دوای ٣ جار دۆزینەوەی توند
+      // قفڵ تەنها دوای ٣ جار دۆزینەوەی زۆر توند
       const shouldLock =
-        streak >= 3 && top.score >= 58 && top.hashDist <= 12;
+        streak >= 3 && top.score >= 65 && top.hashDist <= 10;
 
       if (shouldLock) {
         lockedIdRef.current = top.id;
@@ -180,13 +181,12 @@ export function CameraAR() {
       setStatus(
         lockedIdRef.current === top.id
           ? `نیشانەی ئەم شتە: ${top.title}`
-          : `هاوشێوەیی ${Math.round(top.score)}% — جێگیر بمێنەوە`
+          : `ناسنامە ${Math.round(top.score)}% — جێگیر بمێنەوە لەسەر شتەکە`
       );
       return;
     }
 
     missStreakRef.current += 1;
-    // قفڵ زوو لابدە ئەگەر شتەکە نەما
     if (lockedIdRef.current && missStreakRef.current < 2) {
       setStatus("نیشانە — کامێرا لەسەر هەمان شت بهێڵەرەوە");
       return;
@@ -196,7 +196,7 @@ export function CameraAR() {
     setLocked(false);
     streakRef.current.clear();
     setMatches([]);
-    setStatus("تەنها لەسەر هەمان شت دەردەکەوێت — بکە ناو بازنە");
+    setStatus("تەنها هەمان شت · ناوەندی بازنە · جێگیر");
   }
 
   const scanOnce = useCallback(async () => {
@@ -215,19 +215,20 @@ export function CameraAR() {
     try {
       const fp = captureFingerprint(video, { thumbnailMax: 120, rich: true });
 
-      // ١) گەڕانی خۆجێیی توند
       const localHits: MatchedNote[] = cacheRef.current
         .map((note) => {
-          const s = scoreLocalNote(fp, note, geoRef.current);
+          const s = scoreLocalNote(fp, note);
           if (
             !isConfidentMatch({
               hashDist: s.hashDist,
               colorDist: s.colorDist,
               distanceM: 0,
               score: s.score,
-              minScore: 58,
+              minScore: 62,
               avgHashDist: s.avgHashDist,
               closeHits: s.closeHits,
+              patchSim: s.patchSim,
+              phashDist: s.phashDist,
             })
           ) {
             return null;
@@ -244,7 +245,6 @@ export function CameraAR() {
         .sort((a, b) => b!.score - a!.score)
         .slice(0, 3) as MatchedNote[];
 
-      // ٢) گەڕانی سێرڤەر توند
       const res = await fetch("/api/match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -253,17 +253,17 @@ export function CameraAR() {
           longitude: geo.longitude,
           heading: orientRef.current.heading,
           imageHash: fp.imageHash,
-          hashes: fp.hashes.slice(0, 48),
+          hashes: fp.hashes.slice(0, 32),
           colorProfile: {
             ...fp.colorProfile,
-            hashes: fp.hashes.slice(0, 48),
+            hashes: fp.hashes.slice(0, 32),
           },
           deviceId: getDeviceId(),
           radiusM: noGeo
             ? 2000
             : Math.max(100, Math.min(300, (geo.accuracy || 40) * 3.5)),
           visualOnly: noGeo,
-          minScore: 58,
+          minScore: 62,
         }),
       });
       const data = await res.json();
@@ -275,8 +275,11 @@ export function CameraAR() {
         const prev = byId.get(m.id);
         if (!prev || m.score > prev.score) byId.set(m.id, m);
       }
-      const merged = Array.from(byId.values()).sort(
-        (a, b) => b.score - a.score || a.hashDist - b.hashDist
+      const merged = rejectAmbiguous(
+        Array.from(byId.values()).sort(
+          (a, b) => b.score - a.score || a.hashDist - b.hashDist
+        ),
+        12
       );
       applyMatchResults(merged);
     } catch {
@@ -314,7 +317,7 @@ export function CameraAR() {
     setStatus("جێگیر بمێنەوە — چەند وێنە دەگیرێت...");
     try {
       const geo = await resolveGeoForSave();
-      const fp = await captureMultiFrameFingerprint(video, 4, 150);
+      const fp = await captureMultiFrameFingerprint(video, 5, 120);
       setHoldSteady(false);
       setStatus("پاشەکەوت...");
 
@@ -518,7 +521,7 @@ export function CameraAR() {
             </button>
           </div>
           <p className="mt-3 text-center text-[11px] text-mist-500">
-            تێبینی تەنها لەسەر هەمان شت دەردەکەوێت — ناوەندی بازنە
+            ناسنامەی شت · تەنها هەمان شت پیشان دەدرێتەوە
           </p>
         </div>
       )}
