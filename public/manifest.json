@@ -1,14 +1,13 @@
 {
-  "name": "نیشانە — Nishana AR Notes",
-  "short_name": "نیشانە",
-  "description": "تێبینی لەسەر شتەکان لەڕێی کامێرای مۆبایل",
-  "start_url": "/",
+  "name": "هەژمار",
+  "short_name": "هەژمار",
+  "description": "سیستەمی ژمێریاری و کۆگا",
+  "start_url": "/dashboard",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#070B12",
-  "theme_color": "#0B1220",
-  "lang": "ku",
+  "background_color": "#eef3f6",
+  "theme_color": "#0f6b6a",
   "dir": "rtl",
+  "lang": "ku",
   "icons": [
     {
       "src": "/icon.svg",

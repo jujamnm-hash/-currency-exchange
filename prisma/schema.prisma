@@ -7,27 +7,216 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// تێبینییەکی شوێنگرێدراو — بە کامێرا و GPS و نیشانەی بینراو لنگر دەکرێت
-model SpatialNote {
-  id           String   @id @default(cuid())
-  title        String
-  content      String   @db.Text
-  latitude     Float
-  longitude    Float
-  accuracy     Float?
-  altitude     Float?
-  heading      Float?
-  /// جیاوازی-هاش (dHash) وەک hex 16 کاراکتەر
-  imageHash    String
-  /// پرۆفایلی ڕەنگ (JSON) بۆ یارمەتیدانی ناسینەوە
-  colorProfile String   @db.Text
-  /// وێنەی بچووک base64 JPEG
-  thumbnail    String?  @db.Text
-  deviceId     String
+model CompanySettings {
+  id           String   @id @default("default")
+  name         String   @default("کۆمپانیاکەم")
+  phone        String   @default("")
+  address      String   @default("")
+  currency     String   @default("IQD")
+  currencyLabel String  @default("دینار")
+  fiscalYearStart Int   @default(1)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
 
-  @@index([deviceId])
-  @@index([latitude, longitude])
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  products  Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  sku         String   @unique
+  name        String
+  description String   @default("")
+  unit        String   @default("دانە")
+  costPrice   Decimal  @db.Decimal(18, 2)
+  sellPrice   Decimal  @db.Decimal(18, 2)
+  quantity    Decimal  @default(0) @db.Decimal(18, 3)
+  minQuantity Decimal  @default(0) @db.Decimal(18, 3)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  saleItems      SaleItem[]
+  purchaseItems  PurchaseItem[]
+  stockMoves     StockMovement[]
+
+  @@index([name])
+  @@index([categoryId])
+}
+
+model Party {
+  id        String   @id @default(cuid())
+  type      String   // CUSTOMER | SUPPLIER | BOTH
+  name      String
+  phone     String   @default("")
+  email     String   @default("")
+  address   String   @default("")
+  balance   Decimal  @default(0) @db.Decimal(18, 2)
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales     Sale[]
+  purchases Purchase[]
+  expenses  Expense[]
+
+  @@index([type])
+  @@index([name])
+}
+
+model Sale {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  partyId     String?
+  party       Party?   @relation(fields: [partyId], references: [id])
+  date        DateTime @default(now())
+  status      String   @default("COMPLETED") // DRAFT | COMPLETED | CANCELLED
+  subtotal    Decimal  @db.Decimal(18, 2)
+  discount    Decimal  @default(0) @db.Decimal(18, 2)
+  tax         Decimal  @default(0) @db.Decimal(18, 2)
+  total       Decimal  @db.Decimal(18, 2)
+  paidAmount  Decimal  @default(0) @db.Decimal(18, 2)
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items SaleItem[]
+
+  @@index([date])
+  @@index([partyId])
+  @@index([status])
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Decimal @db.Decimal(18, 3)
+  unitPrice Decimal @db.Decimal(18, 2)
+  lineTotal Decimal @db.Decimal(18, 2)
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model Purchase {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  partyId     String?
+  party       Party?   @relation(fields: [partyId], references: [id])
+  date        DateTime @default(now())
+  status      String   @default("COMPLETED")
+  subtotal    Decimal  @db.Decimal(18, 2)
+  discount    Decimal  @default(0) @db.Decimal(18, 2)
+  tax         Decimal  @default(0) @db.Decimal(18, 2)
+  total       Decimal  @db.Decimal(18, 2)
+  paidAmount  Decimal  @default(0) @db.Decimal(18, 2)
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items PurchaseItem[]
+
+  @@index([date])
+  @@index([partyId])
+}
+
+model PurchaseItem {
+  id         String  @id @default(cuid())
+  purchaseId String
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  quantity   Decimal @db.Decimal(18, 3)
+  unitCost   Decimal @db.Decimal(18, 2)
+  lineTotal  Decimal @db.Decimal(18, 2)
+
+  @@index([purchaseId])
+  @@index([productId])
+}
+
+model StockMovement {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  type      String   // IN | OUT | ADJUST
+  quantity  Decimal  @db.Decimal(18, 3)
+  reason    String   @default("")
+  refType   String   @default("") // SALE | PURCHASE | MANUAL
+  refId     String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([productId])
   @@index([createdAt])
+}
+
+model Account {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  type      String   // ASSET | LIABILITY | EQUITY | REVENUE | EXPENSE
+  isSystem  Boolean  @default(false)
+  balance   Decimal  @default(0) @db.Decimal(18, 2)
+  createdAt DateTime @default(now())
+
+  journalLines JournalLine[]
+  expenses     Expense[]
+
+  @@index([type])
+}
+
+model JournalEntry {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  date        DateTime @default(now())
+  description String   @default("")
+  refType     String   @default("")
+  refId       String   @default("")
+  createdAt   DateTime @default(now())
+
+  lines JournalLine[]
+
+  @@index([date])
+}
+
+model JournalLine {
+  id        String       @id @default(cuid())
+  entryId   String
+  entry     JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId String
+  account   Account      @relation(fields: [accountId], references: [id])
+  debit     Decimal      @default(0) @db.Decimal(18, 2)
+  credit    Decimal      @default(0) @db.Decimal(18, 2)
+
+  @@index([entryId])
+  @@index([accountId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  date        DateTime @default(now())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id])
+  partyId     String?
+  party       Party?   @relation(fields: [partyId], references: [id])
+  amount      Decimal  @db.Decimal(18, 2)
+  description String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+  @@index([accountId])
+}
+
+model Sequence {
+  id    String @id
+  value Int    @default(0)
 }
