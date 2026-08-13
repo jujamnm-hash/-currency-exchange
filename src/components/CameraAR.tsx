@@ -48,6 +48,7 @@ export function CameraAR() {
   const missStreakRef = useRef(0);
   const lockedIdRef = useRef<string | null>(null);
   const enrichSentRef = useRef<Set<string>>(new Set());
+  const candidateIdRef = useRef<string | null>(null);
   const [captureQuality, setCaptureQuality] = useState<CaptureQuality | null>(
     null
   );
@@ -178,6 +179,8 @@ export function CameraAR() {
           phash: fp.colorProfile.phash,
           hog: fp.colorProfile.hog,
           brief: fp.colorProfile.brief,
+          orb: fp.colorProfile.orb,
+          structure: fp.colorProfile.structure,
           hashes: fp.hashes.slice(0, 32),
         },
       }),
@@ -206,6 +209,13 @@ export function CameraAR() {
     if (found.length) {
       missStreakRef.current = 0;
       const top = found[0];
+
+      // دوو چوارچێوەی یەک لە دوای یەک دەبێت هەمان نیشانە بن
+      if (candidateIdRef.current && candidateIdRef.current !== top.id) {
+        streakRef.current.clear();
+      }
+      candidateIdRef.current = top.id;
+
       const prev = streakRef.current.get(top.id) ?? 0;
       streakRef.current.set(top.id, prev + 1);
       for (const [id] of streakRef.current) {
@@ -213,21 +223,25 @@ export function CameraAR() {
       }
 
       const streak = streakRef.current.get(top.id) ?? 0;
-      // قفڵ تەنها دوای ٣ جار دۆزینەوەی زۆر توند
+      // قفڵ تەنها دوای ٤ جار دۆزینەوەی زۆر توند
       const shouldLock =
-        streak >= 3 && top.score >= 72 && top.hashDist <= 9;
+        streak >= 4 && top.score >= 76 && top.hashDist <= 8;
 
       if (shouldLock) {
         lockedIdRef.current = top.id;
         setLocked(true);
       }
 
-      setMatches(found);
-      setStatus(
-        lockedIdRef.current === top.id
-          ? `نیشانەی ئەم شتە: ${top.title}`
-          : `ناسنامە ${Math.round(top.score)}% — جێگیر بمێنەوە لەسەر شتەکە`
-      );
+      // تەنها دوای قفڵ پیشان بدە — پێش قفڵ هیچ overlayیەک نییە
+      if (lockedIdRef.current === top.id) {
+        setMatches([top]);
+        setStatus(`نیشانەی ئەم شتە: ${top.title}`);
+      } else {
+        setMatches([]);
+        setStatus(
+          `جێگیر بمێنەوە · ${Math.round(top.score)}% · ${streak}/4`
+        );
+      }
       return shouldLock;
     }
 
@@ -238,6 +252,7 @@ export function CameraAR() {
     }
 
     lockedIdRef.current = null;
+    candidateIdRef.current = null;
     setLocked(false);
     streakRef.current.clear();
     setMatches([]);
@@ -272,7 +287,7 @@ export function CameraAR() {
               colorDist: s.colorDist,
               distanceM: 0,
               score: s.score,
-              minScore: 72,
+              minScore: 76,
               avgHashDist: s.avgHashDist,
               closeHits: s.closeHits,
               patchSim: s.patchSim,
@@ -281,6 +296,8 @@ export function CameraAR() {
               hogSim: s.hogSim,
               hasPatch: s.hasPatch,
               briefDist: s.briefDist,
+              orbSim: s.orbSim,
+              structureSim: s.structureSim,
             })
           ) {
             return null;
@@ -315,7 +332,7 @@ export function CameraAR() {
             ? 2000
             : Math.max(100, Math.min(300, (geo.accuracy || 40) * 3.5)),
           visualOnly: noGeo,
-          minScore: 72,
+          minScore: 76,
         }),
       });
       const data = await res.json();
@@ -331,7 +348,7 @@ export function CameraAR() {
         Array.from(byId.values()).sort(
           (a, b) => b.score - a.score || a.hashDist - b.hashDist
         ),
-        12
+        18
       );
       const justLocked = applyMatchResults(merged);
       const top = merged[0];
@@ -631,7 +648,7 @@ export function CameraAR() {
             </button>
           </div>
           <p className="mt-3 text-center text-[11px] text-mist-500">
-            ناسنامەی توند · تەنها هەمان شت · جێگیر بمێنەوە لە کاتی تۆمار
+            قفڵی ٤ چوارچێوە · تەنها هەمان شت · جێگیر بمێنەوە لە کاتی تۆمار
           </p>
         </div>
       )}

@@ -18,6 +18,8 @@ const updateSchema = z.object({
       phash: z.string().optional(),
       hog: z.array(z.number()).max(64).optional(),
       brief: z.string().optional(),
+      orb: z.array(z.string()).max(24).optional(),
+      structure: z.array(z.number()).max(32).optional(),
       hashes: z.array(z.string()).max(64).optional(),
     })
     .optional(),
@@ -68,6 +70,10 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
         phash: current.phash ?? incoming.phash,
         hog: current.hog ?? incoming.hog,
         brief: current.brief ?? incoming.brief,
+        orb: Array.from(
+          new Set([...(current.orb ?? []), ...(incoming.orb ?? [])])
+        ).slice(0, 16),
+        structure: incoming.structure ?? current.structure,
         hashes,
       });
     }
