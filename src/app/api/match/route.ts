@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { ensureSchema } from "@/lib/db-bootstrap";
 import { distanceMeters, geoBoundingBox, headingDelta } from "@/lib/geo";
 import {
+  bestHashDistance,
   colorDistance,
-  hammingDistanceHex,
+  isConfidentMatch,
   matchScore,
+  noteHashes,
   parseColorProfile,
 } from "@/lib/vision";
 
@@ -17,14 +19,15 @@ const matchSchema = z.object({
   longitude: z.number().min(-180).max(180),
   heading: z.number().nullable().optional(),
   imageHash: z.string().regex(/^[0-9a-f]{16}$/i),
+  hashes: z.array(z.string().regex(/^[0-9a-f]{16}$/i)).max(12).optional(),
   colorProfile: z.object({
     regions: z.array(z.number()).min(9),
     luma: z.array(z.number()).min(4),
+    hashes: z.array(z.string()).optional(),
   }),
   deviceId: z.string().optional(),
-  radiusM: z.number().min(10).max(500).optional(),
+  radiusM: z.number().min(10).max(2000).optional(),
   minScore: z.number().min(0).max(100).optional(),
-  /** کاتێ GPS نییە — تەنها نیشانەی بینراو لەسەر ئامێر */
   visualOnly: z.boolean().optional(),
 });
 
@@ -33,34 +36,57 @@ export async function POST(req: NextRequest) {
     await ensureSchema();
     const data = matchSchema.parse(await req.json());
     const visualOnly = Boolean(data.visualOnly);
-    const radiusM = data.radiusM ?? (visualOnly ? 500 : 60);
-    const minScore = data.minScore ?? (visualOnly ? 48 : 42);
+    const radiusM = data.radiusM ?? (visualOnly ? 2000 : 120);
+    const minScore = data.minScore ?? 28;
 
-    let candidates;
-    if (visualOnly) {
-      if (!data.deviceId) {
-        return NextResponse.json(
-          { error: "بۆ گەڕانی بێ GPS پێویستە deviceId" },
-          { status: 400 }
-        );
-      }
-      candidates = await prisma.spatialNote.findMany({
+    const queryHashes = Array.from(
+      new Set(
+        [data.imageHash, ...(data.hashes ?? []), ...(data.colorProfile.hashes ?? [])]
+          .filter(Boolean)
+          .map((h) => h.toLowerCase())
+      )
+    );
+
+    // کاندید: هەموو تێبینییەکانی ئەم ئامێرە + نزیکەکان بە GPS
+    const byId = new Map<string, Awaited<ReturnType<typeof prisma.spatialNote.findMany>>[number]>();
+
+    if (data.deviceId) {
+      const deviceNotes = await prisma.spatialNote.findMany({
         where: { deviceId: data.deviceId },
-        take: 80,
+        take: 100,
         orderBy: { createdAt: "desc" },
       });
-    } else {
+      for (const n of deviceNotes) byId.set(n.id, n);
+    }
+
+    if (!visualOnly) {
       const box = geoBoundingBox(data.latitude, data.longitude, radiusM);
-      candidates = await prisma.spatialNote.findMany({
+      const geoNotes = await prisma.spatialNote.findMany({
         where: {
           latitude: { gte: box.minLat, lte: box.maxLat },
           longitude: { gte: box.minLon, lte: box.maxLon },
-          ...(data.deviceId ? { deviceId: data.deviceId } : {}),
         },
         take: 120,
         orderBy: { createdAt: "desc" },
       });
+      for (const n of geoNotes) byId.set(n.id, n);
     }
+
+    // تێبینییەکانی fallback (٠,٠) لەسەر هەمان ئامێر
+    if (data.deviceId) {
+      const orphan = await prisma.spatialNote.findMany({
+        where: {
+          deviceId: data.deviceId,
+          latitude: { gte: -0.01, lte: 0.01 },
+          longitude: { gte: -0.01, lte: 0.01 },
+        },
+        take: 50,
+        orderBy: { createdAt: "desc" },
+      });
+      for (const n of orphan) byId.set(n.id, n);
+    }
+
+    const candidates = Array.from(byId.values());
 
     const matches = candidates
       .map((note) => {
@@ -70,32 +96,42 @@ export async function POST(req: NextRequest) {
           note.latitude,
           note.longitude
         );
-        if (!visualOnly && dist > radiusM) return null;
-
-        const hashDist = hammingDistanceHex(
-          data.imageHash.toLowerCase(),
-          note.imageHash.toLowerCase()
-        );
         const profile = parseColorProfile(note.colorProfile);
+        const stored = noteHashes(note.imageHash, profile);
+        const hashDist = bestHashDistance(queryHashes, stored);
         const cDist = colorDistance(data.colorProfile, profile);
         const hDelta = headingDelta(data.heading, note.heading);
 
-        let score: number;
-        if (visualOnly) {
-          const hashScore = Math.max(0, 1 - hashDist / 22);
-          const colorScore = Math.max(0, 1 - cDist / 0.35);
-          score = Math.round((hashScore * 0.65 + colorScore * 0.35) * 1000) / 10;
-        } else {
-          score = matchScore({
+        // ئەگەر GPSـی تێبینی یان ئێستا fallback بێت → تەنها بینراو
+        const noteIsFallback =
+          Math.abs(note.latitude) < 0.01 && Math.abs(note.longitude) < 0.01;
+        const queryIsFallback = visualOnly || (Math.abs(data.latitude) < 0.01 && Math.abs(data.longitude) < 0.01);
+        const visualPrimary = noteIsFallback || queryIsFallback || dist > radiusM;
+
+        // ئەگەر زۆر دوور بێت و هاش خراپ بێت — پشتگوێی بخە
+        if (!visualPrimary && dist > radiusM && hashDist > 18) return null;
+        if (visualPrimary && hashDist > 26 && cDist > 0.35) return null;
+
+        const score = matchScore({
+          hashDist,
+          colorDist: cDist,
+          distanceM: visualPrimary ? 0 : dist,
+          headingDelta: hDelta,
+          radiusM,
+          visualPrimary,
+        });
+
+        if (
+          !isConfidentMatch({
             hashDist,
             colorDist: cDist,
-            distanceM: dist,
-            headingDelta: hDelta,
-            radiusM,
-          });
+            distanceM: visualPrimary ? 0 : dist,
+            score,
+            minScore,
+          })
+        ) {
+          return null;
         }
-
-        if (score < minScore) return null;
 
         return {
           ...note,
@@ -106,7 +142,7 @@ export async function POST(req: NextRequest) {
         };
       })
       .filter(Boolean)
-      .sort((a, b) => (b!.score - a!.score) || a!.distanceM - b!.distanceM)
+      .sort((a, b) => (b!.score - a!.score) || a!.hashDist - b!.hashDist)
       .slice(0, 8);
 
     return NextResponse.json({
@@ -114,6 +150,7 @@ export async function POST(req: NextRequest) {
       scanned: candidates.length,
       radiusM,
       visualOnly,
+      minScore,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
