@@ -138,11 +138,12 @@ export function CameraAR() {
     if (video.readyState < 2) return;
 
     const now = Date.now();
-    if (now - lastScanRef.current < 1400) return;
+    if (now - lastScanRef.current < 900) return;
     lastScanRef.current = now;
     scanningRef.current = true;
 
     const geo = geoRef.current ?? FALLBACK_GEO;
+    const noGeo = !geoRef.current || geo.accuracy >= 50000;
 
     try {
       const fp = captureFingerprint(video, { thumbnailMax: 140 });
@@ -154,22 +155,30 @@ export function CameraAR() {
           longitude: geo.longitude,
           heading: orientRef.current.heading,
           imageHash: fp.imageHash,
+          hashes: fp.hashes,
           colorProfile: fp.colorProfile,
           deviceId: getDeviceId(),
-          radiusM:
-            geo.accuracy >= 50000
-              ? 500
-              : Math.max(40, Math.min(150, (geo.accuracy || 30) * 2.5)),
-          visualOnly: geo.accuracy >= 50000,
+          radiusM: noGeo
+            ? 2000
+            : Math.max(80, Math.min(250, (geo.accuracy || 40) * 3)),
+          visualOnly: noGeo,
+          minScore: 26,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "هەڵەی گەڕان");
-      setMatches(data.matches || []);
-      if ((data.matches || []).length) {
-        setStatus(`${data.matches.length} نیشانە دۆزرایەوە — دەستی لێبدە`);
+      const found = (data.matches || []) as MatchedNote[];
+      if (found.length) {
+        setMatches(found);
+        setStatus(`✓ ${found.length} نیشانە — دەستی لێبدە بۆ خوێندنەوە`);
       } else {
-        setStatus("هیچ نیشانەیەک لێرە نییە — دوگمەی + داگرە");
+        // ماوەیەک نیشانەی پێشوو بهێڵەرەوە تا لەرزینی شاشە نایشارێتەوە
+        setMatches((prev) => {
+          if (!prev.length) return prev;
+          const aged = prev.filter((m) => m.score >= 90);
+          return aged;
+        });
+        setStatus("کامێرا ڕاست بکەرەوە سەر ناوەندی شتەکە · دوگمەی گەڕان");
       }
     } catch {
       setStatus("گەڕان سەرنەکەوت — دووبارە هەوڵ بدە");
@@ -182,7 +191,7 @@ export function CameraAR() {
     if (!ready) return;
     const id = window.setInterval(() => {
       void scanOnce();
-    }, 1600);
+    }, 1100);
     return () => window.clearInterval(id);
   }, [ready, scanOnce]);
 
@@ -233,8 +242,8 @@ export function CameraAR() {
         throw new Error(data.error || detail || "پاشەکەوت سەرنەکەوت");
       }
       setComposerOpen(false);
-      setStatus("✓ نیشانە لەسەر شتەکە جێگیر کرا");
-      setMatches((prev) => [
+      setStatus("✓ نیشانە جێگیر کرا — کامێرا لابرا و دووبارە بخەرە سەری");
+      setMatches([
         {
           ...data.note,
           score: 100,
@@ -242,8 +251,9 @@ export function CameraAR() {
           hashDist: 0,
           colorDist: 0,
         },
-        ...prev,
       ]);
+      // دوای پاشەکەوت خێرا دووبارە بگەڕێ بۆ دڵنیابوون
+      window.setTimeout(() => void scanOnce(), 800);
     } finally {
       setSaving(false);
     }
