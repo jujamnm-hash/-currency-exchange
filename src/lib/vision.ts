@@ -1,12 +1,11 @@
-/** نیشانەی بینراو — چەند هاش + پرۆفایلی ڕەنگ بۆ ناسینەوەی خۆڕاگرتر */
+/** نیشانەی بینراو — چەند هاش + ڕەنگ + لێواری بۆ ناسینەوەی خۆڕاگرتر */
 
 export type ColorProfile = {
-  /** ٩ ناوچە × RGB ناوەند (٠–٢٥٥) */
   regions: number[];
-  /** هیستۆگرامی سادەی ڕووناکی (٨ بن) */
   luma: number[];
-  /** هاشە یاریدەدەرەکان (چەند قەبارەی چوارچێوە) */
   hashes?: string[];
+  /** تۆڕی وزەی لێوار (١٦ نرخ) */
+  edges?: number[];
 };
 
 export type VisualFingerprint = {
@@ -16,10 +15,17 @@ export type VisualFingerprint = {
   hashes: string[];
 };
 
-const HASH_SIZE = 9; // 8×8 differences → 64 bits
+const HASH_SIZE = 9;
 const REGION_GRID = 3;
-/** قەبارەکانی ناوەند بۆ خۆڕاگری گۆڕانی دووری/زوم */
-const CROP_SCALES = [0.55, 0.72, 0.88];
+const CROP_SCALES = [0.5, 0.68, 0.82, 0.92];
+/** ئۆفسێتەکان بۆ خۆڕاگری جوڵەی کەمی کامێرا */
+const OFFSETS: Array<[number, number]> = [
+  [0, 0],
+  [0.04, 0],
+  [-0.04, 0],
+  [0, 0.04],
+  [0, -0.04],
+];
 
 function clampByte(n: number) {
   return Math.max(0, Math.min(255, Math.round(n)));
@@ -29,12 +35,17 @@ function luminance(r: number, g: number, b: number) {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 /** وێنە لە ڤیدیۆ بگرە و fingerprint دروست بکە */
 export function captureFingerprint(
   video: HTMLVideoElement,
-  options?: { thumbnailMax?: number }
+  options?: { thumbnailMax?: number; rich?: boolean }
 ): VisualFingerprint {
   const thumbMax = options?.thumbnailMax ?? 160;
+  const rich = options?.rich !== false;
   const w = video.videoWidth;
   const h = video.videoHeight;
   if (!w || !h) {
@@ -42,21 +53,30 @@ export function captureFingerprint(
   }
 
   const hashes: string[] = [];
-  for (const scale of CROP_SCALES) {
-    const side = Math.min(w, h) * scale;
-    const sx = (w - side) / 2;
-    const sy = (h - side) / 2;
-    const hashCanvas = document.createElement("canvas");
-    hashCanvas.width = HASH_SIZE;
-    hashCanvas.height = HASH_SIZE;
-    const hctx = hashCanvas.getContext("2d", { willReadFrequently: true })!;
-    hctx.drawImage(video, sx, sy, side, side, 0, 0, HASH_SIZE, HASH_SIZE);
-    const hashData = hctx.getImageData(0, 0, HASH_SIZE, HASH_SIZE).data;
-    hashes.push(computeDHash(hashData, HASH_SIZE));
-    hashes.push(computeAHash(hashData, HASH_SIZE));
+  const offsets = rich ? OFFSETS : ([[0, 0]] as Array<[number, number]>);
+  const scales = rich ? CROP_SCALES : [0.72];
+
+  for (const scale of scales) {
+    for (const [ox, oy] of offsets) {
+      const side = Math.min(w, h) * scale;
+      let sx = (w - side) / 2 + ox * w;
+      let sy = (h - side) / 2 + oy * h;
+      sx = Math.max(0, Math.min(w - side, sx));
+      sy = Math.max(0, Math.min(h - side, sy));
+
+      const hashCanvas = document.createElement("canvas");
+      hashCanvas.width = HASH_SIZE;
+      hashCanvas.height = HASH_SIZE;
+      const hctx = hashCanvas.getContext("2d", { willReadFrequently: true })!;
+      hctx.drawImage(video, sx, sy, side, side, 0, 0, HASH_SIZE, HASH_SIZE);
+      const hashData = hctx.getImageData(0, 0, HASH_SIZE, HASH_SIZE).data;
+      hashes.push(computeDHash(hashData, HASH_SIZE));
+      hashes.push(computeAHash(hashData, HASH_SIZE));
+    }
   }
 
-  // پرۆفایلی ڕەنگ لە ناوەندی سەرەکی
+  const uniqueHashes = Array.from(new Set(hashes));
+
   const mainSide = Math.min(w, h) * 0.72;
   const sx = (w - mainSide) / 2;
   const sy = (h - mainSide) / 2;
@@ -68,12 +88,13 @@ export function captureFingerprint(
   rctx.drawImage(video, sx, sy, mainSide, mainSide, 0, 0, regionSize, regionSize);
   const regionData = rctx.getImageData(0, 0, regionSize, regionSize).data;
   const colorProfile = computeColorProfile(regionData, regionSize);
-  colorProfile.hashes = hashes;
+  colorProfile.hashes = uniqueHashes;
+  colorProfile.edges = computeEdgeGrid(regionData, regionSize);
 
   const thumbCanvas = document.createElement("canvas");
-  const scale = thumbMax / mainSide;
-  thumbCanvas.width = Math.round(mainSide * scale);
-  thumbCanvas.height = Math.round(mainSide * scale);
+  const tScale = thumbMax / mainSide;
+  thumbCanvas.width = Math.round(mainSide * tScale);
+  thumbCanvas.height = Math.round(mainSide * tScale);
   const tctx = thumbCanvas.getContext("2d")!;
   tctx.drawImage(
     video,
@@ -89,30 +110,76 @@ export function captureFingerprint(
   const thumbnail = thumbCanvas.toDataURL("image/jpeg", 0.55);
 
   return {
-    imageHash: hashes[0],
+    imageHash: uniqueHashes[0],
     colorProfile,
     thumbnail,
-    hashes,
+    hashes: uniqueHashes,
   };
 }
 
-/** Difference hash */
+/** ٣–٥ چوارچێوە بگرە و یەکیان بکە — باشتر بۆ پاشەکەوت */
+export async function captureMultiFrameFingerprint(
+  video: HTMLVideoElement,
+  frames = 4,
+  gapMs = 140
+): Promise<VisualFingerprint> {
+  const collected: VisualFingerprint[] = [];
+  for (let i = 0; i < frames; i++) {
+    if (i > 0) await sleep(gapMs);
+    if (video.readyState < 2) continue;
+    collected.push(captureFingerprint(video, { thumbnailMax: 120, rich: true }));
+  }
+  if (!collected.length) {
+    throw new Error("نەتوانرا وێنە بگردرێت — کامێرا جێگیر بکە");
+  }
+  return mergeFingerprints(collected);
+}
+
+export function mergeFingerprints(list: VisualFingerprint[]): VisualFingerprint {
+  const allHashes = Array.from(new Set(list.flatMap((f) => f.hashes)));
+  const regionLen = list[0].colorProfile.regions.length;
+  const regions = new Array(regionLen).fill(0);
+  const lumaLen = list[0].colorProfile.luma.length;
+  const luma = new Array(lumaLen).fill(0);
+  const edgeLen = list[0].colorProfile.edges?.length ?? 0;
+  const edges = new Array(edgeLen).fill(0);
+
+  for (const f of list) {
+    for (let i = 0; i < regionLen; i++) regions[i] += f.colorProfile.regions[i] ?? 0;
+    for (let i = 0; i < lumaLen; i++) luma[i] += f.colorProfile.luma[i] ?? 0;
+    if (edgeLen && f.colorProfile.edges) {
+      for (let i = 0; i < edgeLen; i++) edges[i] += f.colorProfile.edges[i] ?? 0;
+    }
+  }
+  const n = list.length;
+  const profile: ColorProfile = {
+    regions: regions.map((v) => clampByte(v / n)),
+    luma: luma.map((v) => Math.round((v / n) * 1000) / 1000),
+    hashes: allHashes,
+    edges: edgeLen ? edges.map((v) => Math.round((v / n) * 1000) / 1000) : undefined,
+  };
+
+  // باشترین thumbnail — یەکەم
+  return {
+    imageHash: allHashes[0],
+    colorProfile: profile,
+    thumbnail: list[0].thumbnail,
+    hashes: allHashes,
+  };
+}
+
 function computeDHash(data: Uint8ClampedArray, size: number): string {
   const gray: number[] = [];
   for (let i = 0; i < size * size; i++) {
     const o = i * 4;
     gray.push(luminance(data[o], data[o + 1], data[o + 2]));
   }
-
   let bits = "";
   for (let y = 0; y < size - 1; y++) {
     for (let x = 0; x < size - 1; x++) {
-      const left = gray[y * size + x];
-      const right = gray[y * size + x + 1];
-      bits += left < right ? "1" : "0";
+      bits += gray[y * size + x] < gray[y * size + x + 1] ? "1" : "0";
     }
   }
-
   let hex = "";
   for (let i = 0; i < 64; i += 4) {
     hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
@@ -120,7 +187,6 @@ function computeDHash(data: Uint8ClampedArray, size: number): string {
   return hex;
 }
 
-/** Average hash — خۆڕاگرتر بۆ گۆڕانی گشتی ڕووناکی */
 function computeAHash(data: Uint8ClampedArray, size: number): string {
   const gray: number[] = [];
   let sum = 0;
@@ -173,8 +239,47 @@ function computeColorProfile(data: Uint8ClampedArray, size: number): ColorProfil
   }
 
   const total = luma.reduce((a, c) => a + c, 0) || 1;
-  const lumaNorm = luma.map((v) => Math.round((v / total) * 1000) / 1000);
-  return { regions, luma: lumaNorm };
+  return {
+    regions,
+    luma: luma.map((v) => Math.round((v / total) * 1000) / 1000),
+  };
+}
+
+/** تۆڕی ٤×٤ وزەی لێوار */
+function computeEdgeGrid(data: Uint8ClampedArray, size: number): number[] {
+  const grid = 4;
+  const cell = Math.floor(size / grid);
+  const out: number[] = [];
+  for (let gy = 0; gy < grid; gy++) {
+    for (let gx = 0; gx < grid; gx++) {
+      let energy = 0;
+      let n = 0;
+      const x0 = gx * cell;
+      const y0 = gy * cell;
+      for (let y = y0; y < y0 + cell - 1; y++) {
+        for (let x = x0; x < x0 + cell - 1; x++) {
+          const o = (y * size + x) * 4;
+          const oR = (y * size + x + 1) * 4;
+          const oD = ((y + 1) * size + x) * 4;
+          const L = luminance(data[o], data[o + 1], data[o + 2]);
+          const R = luminance(data[oR], data[oR + 1], data[oR + 2]);
+          const D = luminance(data[oD], data[oD + 1], data[oD + 2]);
+          energy += Math.abs(L - R) + Math.abs(L - D);
+          n++;
+        }
+      }
+      out.push(Math.round(((energy / (n || 1)) / 255) * 1000) / 1000);
+    }
+  }
+  return out;
+}
+
+function edgeDistance(a?: number[], b?: number[]): number {
+  if (!a?.length || !b?.length) return 0.5;
+  const len = Math.min(a.length, b.length);
+  let sum = 0;
+  for (let i = 0; i < len; i++) sum += Math.abs(a[i] - b[i]);
+  return sum / len;
 }
 
 export function hammingDistanceHex(a: string, b: string): number {
@@ -189,7 +294,6 @@ export function hammingDistanceHex(a: string, b: string): number {
   return dist;
 }
 
-/** کەمترین دووری نێوان دوو کۆمەڵە هاش */
 export function bestHashDistance(query: string[], stored: string[]): number {
   if (!query.length || !stored.length) return 64;
   let best = 64;
@@ -216,7 +320,8 @@ export function colorDistance(a: ColorProfile, b: ColorProfile): number {
     lumaSum += Math.abs((a.luma[i] ?? 0) - (b.luma[i] ?? 0));
   }
   const lumaScore = bins ? lumaSum / 2 : 1;
-  return regionScore * 0.7 + lumaScore * 0.3;
+  const eDist = edgeDistance(a.edges, b.edges);
+  return regionScore * 0.55 + lumaScore * 0.25 + eDist * 0.2;
 }
 
 export function parseColorProfile(raw: string): ColorProfile {
@@ -232,9 +337,6 @@ export function noteHashes(imageHash: string, profile: ColorProfile): string[] {
   return Array.from(new Set(list.map((h) => h.toLowerCase())));
 }
 
-/**
- * خاڵی هاوشێوەیی ٠–١٠٠ — نەرمتر بۆ گەڕانەوەی ڕاستەقینە
- */
 export function matchScore(opts: {
   hashDist: number;
   colorDist: number;
@@ -243,23 +345,21 @@ export function matchScore(opts: {
   radiusM: number;
   visualPrimary?: boolean;
 }): number {
-  // hashDist ٠–٣٢ هێشتا بەسوودە
-  const hashScore = Math.max(0, 1 - opts.hashDist / 32);
-  const colorScore = Math.max(0, 1 - opts.colorDist / 0.45);
+  const hashScore = Math.max(0, 1 - opts.hashDist / 34);
+  const colorScore = Math.max(0, 1 - opts.colorDist / 0.5);
   const distScore = Math.max(0, 1 - opts.distanceM / Math.max(opts.radiusM, 1));
   const headScore = Math.max(0, 1 - opts.headingDelta / 120);
 
   let combined: number;
   if (opts.visualPrimary) {
-    combined = hashScore * 0.7 + colorScore * 0.3;
+    combined = hashScore * 0.72 + colorScore * 0.28;
   } else {
     combined =
-      hashScore * 0.5 + colorScore * 0.25 + distScore * 0.15 + headScore * 0.1;
+      hashScore * 0.52 + colorScore * 0.25 + distScore * 0.15 + headScore * 0.08;
   }
   return Math.round(combined * 1000) / 10;
 }
 
-/** ئایا ئەم هاش/ڕەنگە بەسە بۆ پیشاندان؟ */
 export function isConfidentMatch(opts: {
   hashDist: number;
   colorDist: number;
@@ -268,11 +368,52 @@ export function isConfidentMatch(opts: {
   minScore: number;
 }): boolean {
   if (opts.score >= opts.minScore) return true;
-  // هاشی زۆر نزیک — تەنانەت ئەگەر خاڵی گشتی نزم بێت
-  if (opts.hashDist <= 12) return true;
-  // نزیک لە شوێن + هاشی مامناوەند
-  if (opts.distanceM <= 40 && opts.hashDist <= 20) return true;
-  // ڕەنگ + هاش مامناوەند
-  if (opts.hashDist <= 16 && opts.colorDist <= 0.22) return true;
+  if (opts.hashDist <= 14) return true;
+  if (opts.distanceM <= 50 && opts.hashDist <= 22) return true;
+  if (opts.hashDist <= 18 && opts.colorDist <= 0.25) return true;
   return false;
+}
+
+/** گەڕانی خێرای خۆجێیی لەسەر کاش */
+export function scoreLocalNote(
+  fp: VisualFingerprint,
+  note: {
+    imageHash: string;
+    colorProfile: string;
+    latitude: number;
+    longitude: number;
+  },
+  geo?: { latitude: number; longitude: number } | null
+): { score: number; hashDist: number; colorDist: number } {
+  const profile = parseColorProfile(note.colorProfile);
+  const stored = noteHashes(note.imageHash, profile);
+  const hashDist = bestHashDistance(fp.hashes, stored);
+  const cDist = colorDistance(fp.colorProfile, profile);
+  const noteFallback =
+    Math.abs(note.latitude) < 0.01 && Math.abs(note.longitude) < 0.01;
+  const queryFallback =
+    !geo || (Math.abs(geo.latitude) < 0.01 && Math.abs(geo.longitude) < 0.01);
+  const visualPrimary = noteFallback || queryFallback;
+  let distanceM = 0;
+  if (!visualPrimary && geo) {
+    const R = 6371000;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(note.latitude - geo.latitude);
+    const dLon = toRad(note.longitude - geo.longitude);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(geo.latitude)) *
+        Math.cos(toRad(note.latitude)) *
+        Math.sin(dLon / 2) ** 2;
+    distanceM = 2 * R * Math.asin(Math.sqrt(a));
+  }
+  const score = matchScore({
+    hashDist,
+    colorDist: cDist,
+    distanceM: visualPrimary ? 0 : distanceM,
+    headingDelta: 90,
+    radiusM: 200,
+    visualPrimary,
+  });
+  return { score, hashDist, colorDist: cDist };
 }
