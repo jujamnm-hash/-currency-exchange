@@ -9,6 +9,10 @@ export type ColorProfile = {
   phash?: string;
   /** پاتچی ١٦×١٦ خۆلێکراو (٠–٢٥٥) بۆ بەراوردکردنی قاڵب */
   patch?: number[];
+  /** چەند پاتچی جێگیر لە multi-frame */
+  patches?: number[][];
+  /** HOG بچووک (٣٢ نرخ) */
+  hog?: number[];
 };
 
 export type VisualFingerprint = {
@@ -108,6 +112,7 @@ export function captureFingerprint(
   colorProfile.edges = computeEdgeGrid(regionData, regionSize);
   colorProfile.phash = phash;
   colorProfile.patch = patch;
+  colorProfile.hog = computeHog(regionData, regionSize);
 
   const thumbCanvas = document.createElement("canvas");
   const tScale = thumbMax / main.side;
@@ -137,8 +142,8 @@ export function captureFingerprint(
 
 export async function captureMultiFrameFingerprint(
   video: HTMLVideoElement,
-  frames = 5,
-  gapMs = 120
+  frames = 7,
+  gapMs = 110
 ): Promise<VisualFingerprint> {
   const collected: VisualFingerprint[] = [];
   for (let i = 0; i < frames; i++) {
@@ -146,10 +151,41 @@ export async function captureMultiFrameFingerprint(
     if (video.readyState < 2) continue;
     collected.push(captureFingerprint(video, { thumbnailMax: 120, rich: true }));
   }
-  if (!collected.length) {
+  if (collected.length < 3) {
     throw new Error("نەتوانرا وێنە بگردرێت — کامێرا جێگیر بکە");
   }
-  return mergeFingerprints(collected);
+
+  // تەنها چوارچێوە جێگیرەکان بهێڵەرەوە (phash نزیک لە یەکتر)
+  const withPh = collected.filter((f) => f.colorProfile.phash);
+  const ref = withPh[Math.floor(withPh.length / 2)]?.colorProfile.phash;
+  let stable = collected;
+  if (ref) {
+    stable = collected.filter((f) => {
+      const p = f.colorProfile.phash;
+      if (!p) return false;
+      return hammingDistanceHex(p, ref) <= 10;
+    });
+    if (stable.length < 3) stable = collected;
+  }
+
+  // پێویستە پاتچەکان لێکچووبن
+  const patches = stable
+    .map((f) => f.colorProfile.patch)
+    .filter((p): p is number[] => Boolean(p?.length));
+  if (patches.length >= 2) {
+    const base = patches[0];
+    const ok = patches.filter((p) => patchSimilarity(base, p) >= 0.75);
+    if (ok.length >= 2) {
+      stable = stable.filter((f) =>
+        f.colorProfile.patch ? patchSimilarity(base, f.colorProfile.patch) >= 0.75 : false
+      );
+    }
+  }
+
+  if (stable.length < 2) {
+    throw new Error("کامێرا لەرزی — جێگیر بمێنەوە و دووبارە هەوڵ بدە");
+  }
+  return mergeFingerprints(stable);
 }
 
 export function mergeFingerprints(list: VisualFingerprint[]): VisualFingerprint {
@@ -175,13 +211,28 @@ export function mergeFingerprints(list: VisualFingerprint[]): VisualFingerprint 
     }
   }
   const n = list.length;
+  const hogLen = list[0].colorProfile.hog?.length ?? 0;
+  const hog = new Array(hogLen).fill(0);
+  if (hogLen) {
+    for (const f of list) {
+      if (!f.colorProfile.hog) continue;
+      for (let i = 0; i < hogLen; i++) hog[i] += f.colorProfile.hog[i] ?? 0;
+    }
+  }
+  const patches = list
+    .map((f) => f.colorProfile.patch)
+    .filter((p): p is number[] => Boolean(p?.length))
+    .slice(0, 5);
+
   const profile: ColorProfile = {
     regions: regions.map((v) => clampByte(v / n)),
     luma: luma.map((v) => Math.round((v / n) * 1000) / 1000),
     hashes: allHashes,
     edges: edgeLen ? edges.map((v) => Math.round((v / n) * 1000) / 1000) : undefined,
-    phash: phashes[0],
+    phash: phashes[Math.floor(phashes.length / 2)] ?? phashes[0],
     patch: patchLen ? patch.map((v) => clampByte(v / n)) : undefined,
+    patches: patches.length ? patches : undefined,
+    hog: hogLen ? hog.map((v) => Math.round((v / n) * 1000) / 1000) : undefined,
   };
 
   return {
@@ -334,6 +385,73 @@ export function patchSimilarity(a?: number[], b?: number[]): number {
   return Math.max(0, Math.min(1, (corr + 1) / 2));
 }
 
+
+/** SSIM سادە لەسەر پاتچ ٠–١ */
+export function patchSSIM(a?: number[], b?: number[]): number {
+  if (!a?.length || !b?.length) return 0;
+  const len = Math.min(a.length, b.length);
+  let sumA = 0,
+    sumB = 0;
+  for (let i = 0; i < len; i++) {
+    sumA += a[i];
+    sumB += b[i];
+  }
+  const meanA = sumA / len;
+  const meanB = sumB / len;
+  let varA = 0,
+    varB = 0,
+    cov = 0;
+  for (let i = 0; i < len; i++) {
+    const da = a[i] - meanA;
+    const db = b[i] - meanB;
+    varA += da * da;
+    varB += db * db;
+    cov += da * db;
+  }
+  varA /= len;
+  varB /= len;
+  cov /= len;
+  const c1 = (0.01 * 255) ** 2;
+  const c2 = (0.03 * 255) ** 2;
+  const num = (2 * meanA * meanB + c1) * (2 * cov + c2);
+  const den = (meanA ** 2 + meanB ** 2 + c1) * (varA + varB + c2);
+  return Math.max(0, Math.min(1, num / (den || 1)));
+}
+
+/** باشترین هاوشێوەیی نێوان پاتچی ئێستا و پاتچە پاشەکەوتکراوەکان */
+export function bestPatchScore(
+  query?: number[],
+  stored?: number[],
+  extras?: number[][]
+): { ncc: number; ssim: number; combined: number } {
+  const list = [stored, ...(extras ?? [])].filter(
+    (p): p is number[] => Boolean(p?.length)
+  );
+  if (!query?.length || !list.length) return { ncc: 0, ssim: 0, combined: 0 };
+  let bestN = 0,
+    bestS = 0;
+  for (const p of list) {
+    bestN = Math.max(bestN, patchSimilarity(query, p));
+    bestS = Math.max(bestS, patchSSIM(query, p));
+  }
+  return { ncc: bestN, ssim: bestS, combined: bestN * 0.55 + bestS * 0.45 };
+}
+
+export function hogSimilarity(a?: number[], b?: number[]): number {
+  if (!a?.length || !b?.length) return 0.5;
+  const len = Math.min(a.length, b.length);
+  let dot = 0,
+    na = 0,
+    nb = 0;
+  for (let i = 0; i < len; i++) {
+    dot += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  const cos = dot / (Math.sqrt(na * nb) || 1);
+  return Math.max(0, Math.min(1, (cos + 1) / 2));
+}
+
 function computeColorProfile(data: Uint8ClampedArray, size: number): ColorProfile {
   const cell = Math.floor(size / REGION_GRID);
   const regions: number[] = [];
@@ -367,6 +485,38 @@ function computeColorProfile(data: Uint8ClampedArray, size: number): ColorProfil
     regions,
     luma: luma.map((v) => Math.round((v / total) * 1000) / 1000),
   };
+}
+
+
+/** HOG بچووک: ٢×٢ خانە × ٨ ئاراستە = ٣٢ */
+function computeHog(data: Uint8ClampedArray, size: number): number[] {
+  const gray: number[] = [];
+  for (let i = 0; i < size * size; i++) {
+    const o = i * 4;
+    gray.push(luminance(data[o], data[o + 1], data[o + 2]));
+  }
+  const cells = 2;
+  const bins = 8;
+  const cell = Math.floor(size / cells);
+  const hist = new Array(cells * cells * bins).fill(0);
+  for (let cy = 0; cy < cells; cy++) {
+    for (let cx = 0; cx < cells; cx++) {
+      const base = (cy * cells + cx) * bins;
+      for (let y = cy * cell + 1; y < (cy + 1) * cell - 1; y++) {
+        for (let x = cx * cell + 1; x < (cx + 1) * cell - 1; x++) {
+          const gx = gray[y * size + x + 1] - gray[y * size + x - 1];
+          const gy = gray[(y + 1) * size + x] - gray[(y - 1) * size + x];
+          const mag = Math.hypot(gx, gy);
+          let ang = (Math.atan2(gy, gx) + Math.PI) / (2 * Math.PI); // 0..1
+          if (ang >= 1) ang = 0;
+          const bin = Math.min(bins - 1, Math.floor(ang * bins));
+          hist[base + bin] += mag;
+        }
+      }
+    }
+  }
+  const norm = Math.hypot(...hist) || 1;
+  return hist.map((v) => Math.round((v / norm) * 1000) / 1000);
 }
 
 function computeEdgeGrid(data: Uint8ClampedArray, size: number): number[] {
@@ -495,28 +645,37 @@ export function matchScore(opts: {
   avgHashDist?: number;
   closeHits?: number;
   patchSim?: number;
+  patchSSIM?: number;
   phashDist?: number;
+  hogSim?: number;
 }): number {
-  const hashScore = Math.max(0, 1 - opts.hashDist / 14);
+  const hashScore = Math.max(0, 1 - opts.hashDist / 12);
   const avgScore =
-    opts.avgHashDist != null ? Math.max(0, 1 - opts.avgHashDist / 16) : hashScore;
-  const colorScore = Math.max(0, 1 - opts.colorDist / 0.25);
-  const hitBonus = Math.min(1, (opts.closeHits ?? 0) / 3);
-  const patchScore = opts.patchSim ?? 0.5;
+    opts.avgHashDist != null ? Math.max(0, 1 - opts.avgHashDist / 14) : hashScore;
+  const colorScore = Math.max(0, 1 - opts.colorDist / 0.22);
+  const patchNcc = opts.patchSim ?? 0;
+  const patchS = opts.patchSSIM ?? patchNcc;
+  const patchScore = patchNcc * 0.55 + patchS * 0.45;
   const phashScore =
-    opts.phashDist != null ? Math.max(0, 1 - opts.phashDist / 14) : hashScore;
+    opts.phashDist != null ? Math.max(0, 1 - opts.phashDist / 12) : 0;
+  const hogScore = opts.hogSim ?? 0.5;
 
+  // پاتچ و pHash گرنگترینن بۆ ناسنامەی شت
   const combined =
-    hashScore * 0.28 +
-    avgScore * 0.12 +
-    colorScore * 0.15 +
-    hitBonus * 0.08 +
-    patchScore * 0.25 +
-    phashScore * 0.12;
+    patchScore * 0.34 +
+    phashScore * 0.2 +
+    hashScore * 0.18 +
+    avgScore * 0.08 +
+    colorScore * 0.1 +
+    hogScore * 0.1;
 
   return Math.round(combined * 1000) / 10;
 }
 
+/**
+ * دەروازەی AND توند: هەموو سینگناڵەکان دەبێت تێپەڕن.
+ * تەنها هەمان شت — نەک نزیکی شوێن یان ڕەنگی گشتی.
+ */
 export function isConfidentMatch(opts: {
   hashDist: number;
   colorDist: number;
@@ -526,44 +685,50 @@ export function isConfidentMatch(opts: {
   avgHashDist?: number;
   closeHits?: number;
   patchSim?: number;
+  patchSSIM?: number;
   phashDist?: number;
+  hogSim?: number;
+  hasPatch?: boolean;
 }): boolean {
   if (opts.score < opts.minScore) return false;
 
-  const patch = opts.patchSim;
+  const hasPatch = opts.hasPatch ?? typeof opts.patchSim === "number";
+  const patchNcc = opts.patchSim ?? 0;
+  const patchS = opts.patchSSIM ?? 0;
+  const patchOk = Math.max(patchNcc, patchS);
   const ph = opts.phashDist;
-  const avg = opts.avgHashDist ?? opts.hashDist;
-  const hits = opts.closeHits ?? 0;
+  const hog = opts.hogSim;
 
-  // ئەگەر پاتچ هەبێت — دەبێت باش بێت
-  if (typeof patch === "number") {
-    if (patch < 0.72) return false;
-    return (
-      opts.hashDist <= 12 &&
-      opts.colorDist <= 0.22 &&
-      (ph == null || ph <= 14) &&
-      (patch >= 0.78 || (opts.hashDist <= 9 && hits >= 2))
-    );
+  // تێبینی نوێ (پاتچ هەیە): AND تەواو
+  if (hasPatch) {
+    if (patchOk < 0.8) return false;
+    if (patchNcc < 0.76 || patchS < 0.72) return false;
+    if (opts.hashDist > 10) return false;
+    if (opts.colorDist > 0.2) return false;
+    if (ph != null && ph > 12) return false;
+    if (hog != null && hog < 0.72) return false;
+    return true;
   }
 
-  // بێ پاتچ (تێبینی کۆن)
+  // تێبینی کۆن بێ پاتچ — زۆر توندتر / نزیک بە قەدەغە
+  // پێویستی بە هاشی زۆر بەهێز هەیە؛ باشترە دووبارە تۆمار بکرێتەوە
   return (
-    opts.hashDist <= 9 &&
-    avg <= 12 &&
-    hits >= 2 &&
-    opts.colorDist <= 0.18 &&
-    (ph == null || ph <= 12)
+    opts.hashDist <= 6 &&
+    (opts.avgHashDist ?? opts.hashDist) <= 9 &&
+    (opts.closeHits ?? 0) >= 3 &&
+    opts.colorDist <= 0.14 &&
+    (ph == null || ph <= 8)
   );
 }
 
 /** ئەگەر دوو نیشانە نزیک بن لە خاڵ — ڕەت بکەرەوە (ناڕوون) */
 export function rejectAmbiguous<T extends { score: number; hashDist: number }>(
   matches: T[],
-  minGap = 12
+  minGap = 15
 ): T[] {
   if (matches.length < 2) return matches;
   const [a, b] = matches;
-  if (a.score - b.score < minGap && Math.abs(a.hashDist - b.hashDist) <= 3) {
+  if (a.score - b.score < minGap || (a.score - b.score < 20 && Math.abs(a.hashDist - b.hashDist) <= 4)) {
     // ناڕوونە کام شتە — هیچ پیشان مەدە
     return [];
   }
@@ -585,17 +750,26 @@ export function scoreLocalNote(
   avgHashDist: number;
   closeHits: number;
   patchSim: number;
+  patchSSIM: number;
   phashDist: number;
+  hogSim: number;
+  hasPatch: boolean;
 } {
   const profile = parseColorProfile(note.colorProfile);
   const stored = noteHashes(note.imageHash, profile);
   const consensus = consensusHashDistance(fp.hashes, stored);
   const cDist = colorDistance(fp.colorProfile, profile);
-  const patchSim = patchSimilarity(fp.colorProfile.patch, profile.patch);
+  const patchScore = bestPatchScore(
+    fp.colorProfile.patch,
+    profile.patch,
+    profile.patches
+  );
   const phashDist =
     fp.colorProfile.phash && profile.phash
       ? hammingDistanceHex(fp.colorProfile.phash, profile.phash)
       : consensus.best;
+  const hogSim = hogSimilarity(fp.colorProfile.hog, profile.hog);
+  const hasPatch = Boolean(profile.patch?.length || profile.patches?.length);
 
   const score = matchScore({
     hashDist: consensus.best,
@@ -606,8 +780,10 @@ export function scoreLocalNote(
     visualPrimary: true,
     avgHashDist: consensus.avgTop,
     closeHits: consensus.closeHits,
-    patchSim,
+    patchSim: patchScore.ncc,
+    patchSSIM: patchScore.ssim,
     phashDist,
+    hogSim,
   });
 
   return {
@@ -616,7 +792,10 @@ export function scoreLocalNote(
     colorDist: cDist,
     avgHashDist: consensus.avgTop,
     closeHits: consensus.closeHits,
-    patchSim,
+    patchSim: patchScore.ncc,
+    patchSSIM: patchScore.ssim,
     phashDist,
+    hogSim,
+    hasPatch,
   };
 }

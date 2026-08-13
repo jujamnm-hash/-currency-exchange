@@ -170,7 +170,7 @@ export function CameraAR() {
       const streak = streakRef.current.get(top.id) ?? 0;
       // قفڵ تەنها دوای ٣ جار دۆزینەوەی زۆر توند
       const shouldLock =
-        streak >= 3 && top.score >= 65 && top.hashDist <= 10;
+        streak >= 3 && top.score >= 72 && top.hashDist <= 9;
 
       if (shouldLock) {
         lockedIdRef.current = top.id;
@@ -224,11 +224,14 @@ export function CameraAR() {
               colorDist: s.colorDist,
               distanceM: 0,
               score: s.score,
-              minScore: 62,
+              minScore: 70,
               avgHashDist: s.avgHashDist,
               closeHits: s.closeHits,
               patchSim: s.patchSim,
+              patchSSIM: s.patchSSIM,
               phashDist: s.phashDist,
+              hogSim: s.hogSim,
+              hasPatch: s.hasPatch,
             })
           ) {
             return null;
@@ -263,7 +266,7 @@ export function CameraAR() {
             ? 2000
             : Math.max(100, Math.min(300, (geo.accuracy || 40) * 3.5)),
           visualOnly: noGeo,
-          minScore: 62,
+          minScore: 70,
         }),
       });
       const data = await res.json();
@@ -317,7 +320,7 @@ export function CameraAR() {
     setStatus("جێگیر بمێنەوە — چەند وێنە دەگیرێت...");
     try {
       const geo = await resolveGeoForSave();
-      const fp = await captureMultiFrameFingerprint(video, 5, 120);
+      const fp = await captureMultiFrameFingerprint(video, 7, 110);
       setHoldSteady(false);
       setStatus("پاشەکەوت...");
 
@@ -521,7 +524,7 @@ export function CameraAR() {
             </button>
           </div>
           <p className="mt-3 text-center text-[11px] text-mist-500">
-            ناسنامەی شت · تەنها هەمان شت پیشان دەدرێتەوە
+            ناسنامەی توند · تەنها هەمان شت · جێگیر بمێنەوە لە کاتی تۆمار
           </p>
         </div>
       )}
