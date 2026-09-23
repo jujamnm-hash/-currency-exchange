@@ -29,12 +29,15 @@ export default function HomePage() {
         <p className="animate-fade-up mt-4 max-w-lg text-base leading-8 text-ink-soft sm:text-lg" style={{ animationDelay: "140ms" }}>
           فرۆشتن، کڕین، کۆگا، خەرجی، حیسابات و ڕاپۆرت — هەمووی بە کوردی سۆرانی، ئامادە بۆ Vercel.
         </p>
+        <p className="animate-fade-up mt-3 text-sm font-semibold text-teal-700" style={{ animationDelay: "170ms" }}>
+          پێشکەشکراو لەلایەن MJ System
+        </p>
         <div className="animate-fade-up mt-8 flex flex-wrap gap-3" style={{ animationDelay: "200ms" }}>
-          <Link href="/dashboard" className="btn-primary px-6 py-3 text-base">
-            چوونە ناو سیستەم
+          <Link href="/promo" className="btn-primary px-6 py-3 text-base">
+            بینینی ریکلامی بازرگانی
           </Link>
-          <Link href="/sales/new" className="btn-ghost px-6 py-3 text-base">
-            پسوڵەی فرۆشتن
+          <Link href="/dashboard" className="btn-ghost px-6 py-3 text-base">
+            چوونە ناو سیستەم
           </Link>
         </div>
       </div>
