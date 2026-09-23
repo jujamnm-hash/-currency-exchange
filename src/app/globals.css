@@ -152,3 +152,204 @@ body {
 .badge-danger {
   @apply badge bg-rose-50 text-[var(--rose)];
 }
+
+/* —— MJ System commercial —— */
+.commercial-bg {
+  background:
+    radial-gradient(1100px 520px at 85% -5%, rgba(15, 107, 106, 0.22), transparent 55%),
+    radial-gradient(800px 480px at 0% 90%, rgba(196, 122, 26, 0.12), transparent 50%),
+    linear-gradient(160deg, #f7fafb 0%, #e6eef2 42%, #dfe9ee 100%);
+}
+
+.commercial-grain::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.commercial-stage {
+  min-height: min(70vh, 640px);
+}
+
+.commercial-scene {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(18px) scale(0.985);
+  animation-duration: 24s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+.scene-1 {
+  animation-name: commercial-scene-1;
+}
+
+.scene-2 {
+  animation-name: commercial-scene-2;
+}
+
+.scene-3 {
+  animation-name: commercial-scene-3;
+  pointer-events: none;
+}
+
+.scene-4 {
+  animation-name: commercial-scene-4;
+}
+
+.scene-5 {
+  animation-name: commercial-scene-5;
+  pointer-events: none;
+}
+
+.scene-5 a {
+  pointer-events: auto;
+}
+
+/* 24s timeline: 0–16% brand, 16–32% promise, 32–52% product, 52–72% features, 72–96% cta, 96–100% fade */
+@keyframes commercial-scene-1 {
+  0%,
+  2% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.985);
+  }
+  6%,
+  14% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  17%,
+  100% {
+    opacity: 0;
+    transform: translateY(-12px) scale(1.01);
+  }
+}
+
+@keyframes commercial-scene-2 {
+  0%,
+  16% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.985);
+  }
+  20%,
+  30% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  33%,
+  100% {
+    opacity: 0;
+    transform: translateY(-12px) scale(1.01);
+  }
+}
+
+@keyframes commercial-scene-3 {
+  0%,
+  32% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.985);
+  }
+  36%,
+  50% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  53%,
+  100% {
+    opacity: 0;
+    transform: translateY(-12px) scale(1.01);
+  }
+}
+
+@keyframes commercial-scene-4 {
+  0%,
+  52% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.985);
+  }
+  56%,
+  70% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  73%,
+  100% {
+    opacity: 0;
+    transform: translateY(-12px) scale(1.01);
+  }
+}
+
+@keyframes commercial-scene-5 {
+  0%,
+  72% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.985);
+  }
+  76%,
+  94% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  98%,
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(1);
+  }
+}
+
+@keyframes ken-burns {
+  from {
+    transform: scale(1.08) translate3d(0, 2%, 0);
+  }
+  to {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes commercial-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.product-frame {
+  box-shadow: 0 28px 80px rgba(18, 32, 43, 0.18);
+}
+
+.product-ken {
+  animation: ken-burns 5s ease-out both;
+  animation-delay: 7.5s;
+}
+
+.commercial-progress-bar {
+  width: 0%;
+  animation: commercial-progress 24s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commercial-scene,
+  .commercial-progress-bar,
+  .product-ken {
+    animation: none !important;
+  }
+
+  .scene-1 {
+    opacity: 1;
+    transform: none;
+    position: relative;
+  }
+
+  .scene-2,
+  .scene-3,
+  .scene-4,
+  .scene-5 {
+    display: none;
+  }
+}
